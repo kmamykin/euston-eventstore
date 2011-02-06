@@ -1,3 +1,3 @@
 require 'ap'
 require 'mongoid'
-require_relative '../../lib/event_store'
+require_relative '../../lib/eventstore'

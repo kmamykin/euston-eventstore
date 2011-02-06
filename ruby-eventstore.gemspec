@@ -3,7 +3,7 @@ $:.push File.expand_path("../lib", __FILE__)
 require 'eventstore/version'
 
 Gem::Specification.new do |s|
-  s.name        = 'ruby-eventstore'
+  s.name        = 'eventstore'
   s.version     = EventStore::VERSION
   s.platform    = Gem::Platform::RUBY
   s.authors     = ['Lee Henson']
@@ -22,11 +22,12 @@ Gem::Specification.new do |s|
   s.add_dependency 'mongoid',  '~> 2.0.0.beta'
   s.add_dependency 'uuid',     '~> 2.3'
 
-  s.add_development_dependency 'awesome_print',      '~> 0.2'
-  s.add_development_dependency 'autotest',           '~> 4.2'
-  s.add_development_dependency 'cucumber',           '~> 0.9'
-  s.add_development_dependency 'database_cleaner',   '~> 0.6'
-  s.add_development_dependency 'rspec-core',         '~> 2.0'
-  s.add_development_dependency 'rspec-expectations', '~> 2.0'
-  s.add_development_dependency 'rspec-mocks',        '~> 2.0'
+  s.add_development_dependency 'awesome_print'
+#  s.add_development_dependency 'autotest',           '~> 4.2'
+#  s.add_development_dependency 'cucumber',           '~> 0.9'
+#  s.add_development_dependency 'database_cleaner',   '~> 0.6'
+  s.add_development_dependency 'fuubar'
+  s.add_development_dependency 'rspec-core',         '~> 2.4'
+  s.add_development_dependency 'rspec-expectations', '~> 2.4'
+  s.add_development_dependency 'rspec-mocks',        '~> 2.4'
 end
