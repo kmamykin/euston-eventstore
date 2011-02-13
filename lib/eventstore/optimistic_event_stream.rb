@@ -5,17 +5,22 @@ module EventStore
       @persistence = persistence
       @committed_events = []
       @uncommitted_events = []
+      @stream_revision = 0
+      @commit_sequence = 0
 
-      commits = persistence.get_from stream_id, min_revision, max_revision
-      populate_stream min_revision, max_revision, commits
-
-      raise StreamNotFoundError if committed_events.empty?
+      unless min_revision.nil? || max_revision.nil?
+        commits = persistence.get_from stream_id, min_revision, max_revision
+        populate_stream min_revision, max_revision, commits
+        
+        raise StreamNotFoundError if committed_events.empty?
+      end
     end
 
     attr_reader :stream_id, :stream_revision, :commit_sequence, :committed_events, :uncommitted_events
 
-    def <<(events = [])
-      raise ArgumentError.new('Expected a non-empty array of events to be passed to <<.') if (events.empty?)
+    def <<(*events)
+      events = events.flatten.reject { |e| e.nil? }
+      raise ArgumentError.new('Expected a non-empty array of events to be passed to <<.') if events.empty?
 
       events.each do |event|
         event = EventMessage.new(event) unless event.is_a? EventMessage
@@ -38,13 +43,19 @@ module EventStore
     end
 
     def clear_changes
-      @uncommitted_events.clear
+      @uncommitted_events = []
     end
     
     protected
 
     def build_commit(commit_id, headers = OpenStruct.new)
-      Commit.new stream_id, stream_revision + uncommitted_events.length, commit_id, commit_sequence + 1, Time.now.utc, headers, uncommitted_events
+      Commit.new stream_id, 
+                 stream_revision + uncommitted_events.length, 
+                 commit_id, 
+                 commit_sequence + 1, 
+                 Time.now.utc, 
+                 headers, 
+                 @uncommitted_events
     end
 
     def persist_changes(commit_id, headers)
@@ -66,10 +77,6 @@ module EventStore
         @commit_sequence = commit.commit_sequence
         current_revision = commit.stream_revision - commit.events.length + 1
 
-#        ap :current_revision => current_revision,
-#            :min_revision => min_revision,
-#            :max_revision => max_revision
-
         return if current_revision > max_revision
 
         commit.events.each do |event|
@@ -78,8 +85,6 @@ module EventStore
           unless current_revision < min_revision
             @committed_events << event
             @stream_revision = current_revision
-
-#            ap :stream_revision => @stream_revision
           end
 
           current_revision += 1
