@@ -3,6 +3,11 @@ require 'eventstore'
 require 'mongoid'
 require 'uuid'
 
+require 'rspec/core'
+require 'rspec/core/rake_task'
+require 'rspec/expectations'
+require 'rspec/mocks'
+
 Dir[File.join(File.dirname(__FILE__), 'support/**/*.rb')].each { |support| require support }
 
 Mongoid.configure do |config|

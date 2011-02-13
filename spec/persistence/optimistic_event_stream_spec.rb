@@ -1,13 +1,20 @@
 require_relative '../spec_helper'
 
-describe EventStore do
+describe ::EventStore do
   let(:default_stream_revision) { 1 }
   let(:default_commit_sequence) { 1 }
   let(:stream_id) { UUID.new }
   let(:persistence) { double('persistence') }
-  let(:stream) { EventStore::OptimisticEventStream.new stream_id, persistence }
+  let(:stream) { EventStore::OptimisticEventStream.new(:stream_id => stream_id, :persistence => persistence) }
 
   after { stream_id = UUID.new }
+
+  def build_commit_stub(stream_id, revision, sequence, length)
+    ::EventStore::Commit.new( :stream_id => stream_id,
+                              :stream_revision => revision,
+                              :commit_sequence => sequence,
+                              :events => length.times.map{ ::EventStore::EventMessage.new })
+  end
 
   describe 'optimistic event stream' do
     context 'when constructing a new stream' do
@@ -23,7 +30,10 @@ describe EventStore do
     
       before do
         persistence.stub(:get_from).with(stream_id, min_revision, max_revision) { committed }
-        @stream = EventStore::OptimisticEventStream.new stream_id, persistence, min_revision, max_revision
+        @stream = EventStore::OptimisticEventStream.new(:stream_id => stream_id,
+                                                        :persistence => persistence,
+                                                        :min_revision => min_revision,
+                                                        :max_revision => max_revision)
       end
       
       it 'has the correct stream identifier' do
@@ -62,7 +72,10 @@ describe EventStore do
 
       before do
         persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { committed }
-        @stream = EventStore::OptimisticEventStream.new stream_id, persistence, 0, EventStore::FIXNUM_MAX
+        @stream = EventStore::OptimisticEventStream.new(:stream_id => stream_id,
+                                                        :persistence => persistence,
+                                                        :min_revision => 0,
+                                                        :max_revision => EventStore::FIXNUM_MAX)
       end
 
       it 'sets the stream revision to the revision of the most recent event' do
@@ -165,9 +178,9 @@ describe EventStore do
     end
     
     context 'when committing any uncommitted changes' do
-      let (:commit_id) { UUID.new }
-      let (:uncommitted) { EventStore::EventMessage.new '' }
-      let (:headers) { Hash.new }
+      let(:commit_id) { UUID.new }
+      let(:uncommitted) { EventStore::EventMessage.new '' }
+      let(:headers) { Hash.new }
     	
       before do
         persistence.stub(:commit) { |c| @constructed = c }
@@ -229,17 +242,20 @@ describe EventStore do
     end
     
     context 'when committing after another thread or process has moved the stream head' do
-      let (:stream_revision) { 1 }
-    	let (:committed) { [ build_commit_stub(stream_id, 1, 1, 1) ] }
-    	let (:uncommitted) { EventStore::EventMessage.new ''  }
-    	let (:discovered_on_commit) { [ build_commit_stub(stream_id, 3, 2, 2) ] }
+      let(:stream_revision) { 1 }
+    	let(:committed) { [ build_commit_stub(stream_id, 1, 1, 1) ] }
+    	let(:uncommitted) { EventStore::EventMessage.new ''  }
+    	let(:discovered_on_commit) { [ build_commit_stub(stream_id, 3, 2, 2) ] }
     	
       before do
         persistence.stub(:commit) { raise EventStore::ConcurrencyError.new }
     		persistence.stub(:get_from).with(stream_id, stream_revision, EventStore::FIXNUM_MAX) { committed }
     		persistence.stub(:get_from).with(stream_id, stream_revision + 1, EventStore::FIXNUM_MAX) { @queried_for_new_commits = true; discovered_on_commit }
 
-    		@stream = EventStore::OptimisticEventStream.new stream_id, persistence, stream_revision, EventStore::FIXNUM_MAX
+    		@stream = EventStore::OptimisticEventStream.new(:stream_id => stream_id,
+                                                        :persistence => persistence,
+                                                        :min_revision => stream_revision,
+                                                        :max_revision => EventStore::FIXNUM_MAX)
     		@stream << uncommitted
         
         begin

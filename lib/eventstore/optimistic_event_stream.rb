@@ -1,18 +1,29 @@
 module EventStore
   class OptimisticEventStream
-    def initialize(stream_id, persistence, min_revision = nil, max_revision = nil)
-      @stream_id = stream_id
-      @persistence = persistence
+    def initialize(options)
+      @persistence = options[:persistence]
       @committed_events = []
       @uncommitted_events = []
-      @stream_revision = 0
       @commit_sequence = 0
 
-      unless min_revision.nil? || max_revision.nil?
-        commits = persistence.get_from stream_id, min_revision, max_revision
-        populate_stream min_revision, max_revision, commits
-        
-        raise StreamNotFoundError if committed_events.empty?
+      if options.has_key? :snapshot
+        snapshot = options[:snapshot]
+        @stream_id = snapshot.stream_id
+        commits = @persistence.get_from @stream_id, snapshot.stream_revision, options[:max_revision]
+        populate_stream snapshot.stream_revision + 1, options[:max_revision], commits
+        @stream_revision = snapshot.stream_revision + committed_events.length
+      else
+        @stream_id = options[:stream_id]
+        @stream_revision = 0
+        min_revision = options[:min_revision] ||= nil
+        max_revision = options[:max_revision] ||= nil
+
+        unless min_revision.nil? || max_revision.nil?
+          commits = @persistence.get_from @stream_id, min_revision, max_revision
+          populate_stream min_revision, max_revision, commits
+
+          raise StreamNotFoundError if committed_events.empty?
+        end
       end
     end
 
@@ -49,13 +60,12 @@ module EventStore
     protected
 
     def build_commit(commit_id, headers = OpenStruct.new)
-      Commit.new stream_id, 
-                 stream_revision + uncommitted_events.length, 
-                 commit_id, 
-                 commit_sequence + 1, 
-                 Time.now.utc, 
-                 headers, 
-                 @uncommitted_events
+      Commit.new({ :stream_id => stream_id,
+                   :stream_revision => stream_revision + uncommitted_events.length,
+                   :commit_id => commit_id,
+                   :commit_sequence => commit_sequence + 1,
+                   :headers => headers,
+                   :events =>  @uncommitted_events })
     end
 
     def persist_changes(commit_id, headers)

@@ -2,14 +2,19 @@ module EventStore
 
   # Represents a series of events which have been fully committed as a single unit and which apply to the stream indicated.
   class Commit
-    def initialize(stream_id, stream_revision, commit_id, commit_sequence, commit_timestamp, headers = OpenStruct.new, events = [])
-      @stream_id = stream_id
-      @stream_revision = stream_revision
-      @commit_id = commit_id
-      @commit_sequence = commit_sequence
-      @commit_timestamp = commit_timestamp
-      @headers = headers
-      @events = events
+    def initialize(hash)
+      defaults = {
+        :stream_id => nil,
+        :stream_revision => 1,
+        :commit_id => nil,
+        :commit_sequence => 1,
+        :commit_timestamp => Time.now.utc,
+        :headers => OpenStruct.new,
+        :events => []
+      }
+
+      values = defaults.merge hash
+      defaults.keys.each { |key| instance_variable_set "@#{key}", values[key] }
     end
 
     # Gets the value which uniquely identifies the stream to which the commit belongs.
