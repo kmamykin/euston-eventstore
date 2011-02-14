@@ -11,7 +11,7 @@ module EventStore
     end
 
     def commit(attempt)
-      return unless attempt.valid? && !attempt.empty?
+      return unless Commit.valid?(attempt) && !Commit.empty?(attempt)
 
       throw_on_duplicate_or_concurrent_writes attempt
       persist_and_dispatch attempt

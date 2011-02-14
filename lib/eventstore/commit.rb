@@ -41,6 +41,26 @@ module EventStore
     def ==(other)
       (other.is_a? Commit) && (@stream_id == other.stream_id) && (@commit_id == other.commit_id)
     end
+
+    class << self
+      def empty?(attempt)
+        attempt.nil? || attempt.events.empty?
+      end
+
+      def has_identifier?(attempt)
+        !(attempt.stream_id.nil? || attempt.commit_id.nil?)
+      end
+
+      def valid?(attempt)
+        raise ArgumentError.new('The commit must not be nil.') if attempt.nil?
+        raise ArgumentError.new('The commit must be uniquely identified.') unless Commit.has_identifier? attempt
+        raise ArgumentError.new('The commit sequence must be a positive number.') unless attempt.commit_sequence > 0
+        raise ArgumentError.new('The stream revision must be a positive number.') unless attempt.stream_revision > 0
+        raise ArgumentError.new('The stream revision must always be greater than or equal to the commit sequence.') if (attempt.stream_revision < attempt.commit_sequence)
+
+        true
+      end
+    end
   end
 
 end

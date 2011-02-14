@@ -8,7 +8,7 @@ require 'rspec/core/rake_task'
 require 'rspec/expectations'
 require 'rspec/mocks'
 
-Dir[File.join(File.dirname(__FILE__), 'support/**/*.rb')].each { |support| require support }
+require 'support/array_enumeration_counter'
 
 Mongoid.configure do |config|
   config.autocreate_indexes = false

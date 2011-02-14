@@ -27,7 +27,7 @@ describe ::EventStore do
           build_commit_stub(stream_id, 6, 3, commit_length),
           build_commit_stub(stream_id, 8, 3, commit_length)
       ] }
-    
+
       before do
         persistence.stub(:get_from).with(stream_id, min_revision, max_revision) { committed }
         @stream = EventStore::OptimisticEventStream.new(:stream_id => stream_id,
@@ -35,7 +35,7 @@ describe ::EventStore do
                                                         :min_revision => min_revision,
                                                         :max_revision => max_revision)
       end
-      
+
       it 'has the correct stream identifier' do
         @stream.stream_id.should == stream_id
       end
@@ -96,7 +96,7 @@ describe ::EventStore do
         @exception.should be_an(ArgumentError)
       end
     end
-    
+
     context 'when adding an unpopulated event message' do
       before do
         begin
@@ -105,7 +105,7 @@ describe ::EventStore do
           @exception = e
         end
       end
-      
+
       it 'raises an ArgumentError' do
         @exception.should be_an(ArgumentError)
       end
@@ -130,88 +130,88 @@ describe ::EventStore do
         stream.uncommitted_events.should have(2).items
       end
     end
-    
+
     context 'when adding a simple object as an event message' do
       let(:my_event) { 'some event data' }
-      
+
       before do
         stream << my_event
       end
-      
+
       it 'adds the uncommitted event to the set of uncommitted events' do
         stream.uncommitted_events.should have(1).items
       end
-      
+
       it 'wraps the uncommitted event in an EventMessage object' do
         stream.uncommitted_events.first.body.should == my_event
       end
     end
-    
+
     context 'when clearing any uncommitted changes' do
       before do
         stream << EventStore::EventMessage.new('')
         stream.clear_changes
       end
-      
+
       it 'clears all uncommitted events' do
         stream.uncommitted_events.should be_empty
       end
     end
-    
+
     context 'when committing an empty changeset' do
       before do
         persistence.stub(:commit) { @persisted = true }
         stream.commit_changes UUID.new, nil
       end
-      
+
       it 'does not call the underlying infrastructure' do
         @persisted.should be_nil
       end
-      
+
       it 'does not increment the current stream revision' do
         stream.stream_revision.should == 0
       end
-      
+
       it 'does not increment the current commit sequence' do
         stream.commit_sequence.should == 0
       end
     end
-    
+
     context 'when committing any uncommitted changes' do
       let(:commit_id) { UUID.new }
       let(:uncommitted) { EventStore::EventMessage.new '' }
       let(:headers) { Hash.new }
-    	
+
       before do
         persistence.stub(:commit) { |c| @constructed = c }
         stream << uncommitted
         stream.commit_changes commit_id, headers
       end
-      
+
       it 'provides a commit to the underlying infrastructure' do
         @constructed.should_not be_nil
       end
-      
+
       it 'builds the commit with the correct stream identifier' do
         @constructed.stream_id.should == stream_id
       end
-      
+
       it 'builds the commit with the correct stream revision' do
         @constructed.stream_revision.should == default_stream_revision
       end
-      
+
       it 'builds the commit with the correct commit identifier' do
         @constructed.commit_id.should == commit_id
       end
-      
+
       it 'builds the commit with an incremented commit sequence' do
         @constructed.commit_sequence.should == default_commit_sequence
       end
-      
+
       it 'builds the commit with the correct commit stamp' do
         ((Time.now - @constructed.commit_timestamp) < 0.05).should be_true
       end
-      
+
       it 'builds the commit with the headers provided' do
         @constructed.headers.should == headers
       end
@@ -240,13 +240,13 @@ describe ::EventStore do
     		stream.uncommitted_events.should have(0).items
   		end
     end
-    
+
     context 'when committing after another thread or process has moved the stream head' do
       let(:stream_revision) { 1 }
     	let(:committed) { [ build_commit_stub(stream_id, 1, 1, 1) ] }
     	let(:uncommitted) { EventStore::EventMessage.new ''  }
     	let(:discovered_on_commit) { [ build_commit_stub(stream_id, 3, 2, 2) ] }
-    	
+
       before do
         persistence.stub(:commit) { raise EventStore::ConcurrencyError.new }
     		persistence.stub(:get_from).with(stream_id, stream_revision, EventStore::FIXNUM_MAX) { committed }
@@ -257,14 +257,14 @@ describe ::EventStore do
                                                         :min_revision => stream_revision,
                                                         :max_revision => EventStore::FIXNUM_MAX)
     		@stream << uncommitted
-        
+
         begin
           @stream.commit_changes UUID.new, nil
         rescue Exception => e
           @thrown = e
         end
       end
-      
+
     	it 'throws a ConcurrencyError' do
     		@thrown.should be_a(EventStore::ConcurrencyError)
   		end
