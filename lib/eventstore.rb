@@ -1,4 +1,5 @@
 require 'eventstore/commit'
+require 'eventstore/commit_filter_persistence'
 require 'eventstore/commit_tracker'
 require 'eventstore/concurrency_error'
 require 'eventstore/duplicate_commit_error'
