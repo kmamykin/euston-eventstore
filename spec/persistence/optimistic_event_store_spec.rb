@@ -2,8 +2,8 @@ require_relative '../spec_helper'
 
 describe ::EventStore do
   let(:stream_id) { UUID.new }
-  let(:persistence) { double('persistence') }
-  let(:dispatcher) { double('dispatcher') }
+  let(:persistence) { double('persistence').as_null_object }
+  let(:dispatcher) { double('dispatcher').as_null_object }
   let(:store) { EventStore::OptimisticEventStore.new persistence, dispatcher }
 
   after { stream_id = UUID.new }
@@ -24,10 +24,7 @@ describe ::EventStore do
   describe 'when opening a stream' do
     let(:min_revision) { 17 }
     let(:max_revision) { 42 }
-    let(:committed) { [ EventStore::Commit.new(:stream_id => stream_id,
-                                               :stream_revision => min_revision,
-                                               :commit_id => UUID.new,
-                                               :events => [ EventStore::EventMessage.new ] ) ] }
+    let(:committed) { [ commit(:stream_revision => min_revision) ] }
 
     before do
       persistence.stub(:get_from).with(stream_id, min_revision, max_revision) { @invoked = true; committed }
@@ -71,11 +68,7 @@ describe ::EventStore do
   describe 'when opening a populated stream' do
     let(:min_revision) { 17 }
     let(:max_revision) { 42 }
-    let(:committed) { [ EventStore::Commit.new(:stream_id => stream_id,
-                                               :stream_revision => min_revision,
-                                               :commit_id => UUID.new,
-                                               :commit_sequence => 1,
-                                               :events => [ EventStore::EventMessage.new ] ) ] }
+    let(:committed) { [ commit(:stream_revision => min_revision) ] }
 
     before do
       persistence.stub(:get_from).with(stream_id, min_revision, max_revision) { @invoked = true; committed }
@@ -90,11 +83,7 @@ describe ::EventStore do
     let(:min_revision) { 42 }
     let(:max_revision) { EventStore::FIXNUM_MAX }
     let(:snapshot) { EventStore::Snapshot.new stream_id, min_revision, 'snapshot' }
-    let(:committed) { [ EventStore::Commit.new(:stream_id => stream_id,
-                                               :stream_revision => min_revision,
-                                               :commit_id => UUID.new,
-                                               :commit_sequence => 0,
-                                               :events => [ EventStore::EventMessage.new ] ) ] }
+    let(:committed) { [ commit(:stream_revision => min_revision, :commit_sequence => 0) ] }
 
     before do
       persistence.stub(:get_from).with(stream_id, min_revision, max_revision) { @invoked = true; committed }
@@ -108,13 +97,8 @@ describe ::EventStore do
     let(:head_stream_revision) { 42 }
     let(:head_commit_sequence) { 15 }
     let(:snapshot) { EventStore::Snapshot.new stream_id, head_stream_revision, 'snapshot' }
-    let(:committed) {
-      EventStore::ArrayEnumerationCounter.new [
-        EventStore::Commit.new(:stream_id => stream_id,
-                               :stream_revision => head_stream_revision,
-                               :commit_id => UUID.new,
-                               :commit_sequence => head_commit_sequence,
-                               :events => [ EventStore::EventMessage.new ] ) ] }
+    let(:committed) { EventStore::ArrayEnumerationCounter.new [ commit(:stream_revision => head_stream_revision,
+                                                                       :commit_sequence => head_commit_sequence) ] }
 
     before do
       persistence.stub(:get_from).with(stream_id, head_stream_revision, EventStore::FIXNUM_MAX) { committed }
@@ -139,11 +123,7 @@ describe ::EventStore do
   end
 
   describe 'when reading up to revision zero' do
-    let(:committed) { [ EventStore::Commit.new(:stream_id => stream_id,
-                                               :stream_revision => 1,
-                                               :commit_id => UUID.new,
-                                               :commit_sequence => 1,
-                                               :events => [ EventStore::EventMessage.new ] ) ] }
+    let(:committed) { [ commit ] }
 
     before do
       persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { @invoked = true; committed }
@@ -155,11 +135,7 @@ describe ::EventStore do
 
   describe 'when reading up to revision zero' do
     let(:snapshot) { EventStore::Snapshot.new stream_id, 1, 'snapshot' }
-    let(:committed) { [ EventStore::Commit.new(:stream_id => stream_id,
-                                               :stream_revision => 1,
-                                               :commit_id => UUID.new,
-                                               :commit_sequence => 1,
-                                               :events => [ EventStore::EventMessage.new ] ) ] }
+    let(:committed) { [ commit ] }
 
     before do
       persistence.stub(:get_from).with(stream_id, snapshot.stream_revision, EventStore::FIXNUM_MAX) { @invoked = true; committed }
@@ -183,10 +159,7 @@ describe ::EventStore do
 
   describe 'when committing with an unidentified attempt back to the stream' do
     let(:empty_identifier) { nil }
-    let(:unidentified) { EventStore::Commit.new(:stream_id => stream_id,
-                                               :stream_revision => 1,
-                                               :commit_id => empty_identifier,
-                                               :commit_sequence => 1 ) }
+    let(:unidentified) { commit(:commit_id => empty_identifier, :events => [] ) }
 
     before do
       begin
@@ -202,11 +175,7 @@ describe ::EventStore do
   describe 'when the number of commits is greater than the number of revisions' do
     let(:stream_revision) { 1 }
     let(:commit_sequence) { 2 }
-    let(:corrupt) { EventStore::Commit.new(:stream_id => stream_id,
-                                           :stream_revision => stream_revision,
-                                           :commit_id => UUID.new,
-                                           :commit_sequence => commit_sequence,
-                                           :events => [ EventStore::EventMessage.new ] ) }
+    let(:corrupt) { commit(:stream_revision => stream_revision, :commit_sequence => commit_sequence) }
 
     before do
       begin
@@ -222,11 +191,7 @@ describe ::EventStore do
   describe 'when committing with a non-positive commit sequence back to the stream' do
     let(:stream_revision) { 1 }
     let(:invalid_commit_sequence) { 0 }
-    let(:invalid_commit) { EventStore::Commit.new(:stream_id => stream_id,
-                                                  :stream_revision => stream_revision,
-                                                  :commit_id => UUID.new,
-                                                  :commit_sequence => invalid_commit_sequence,
-                                                  :events => [ EventStore::EventMessage.new ] ) }
+    let(:invalid_commit) { commit(:stream_revision => stream_revision, :commit_sequence => invalid_commit_sequence) }
 
     before do
       begin
@@ -242,11 +207,7 @@ describe ::EventStore do
   describe 'when committing with a non-positive stream revision back to the stream' do
     let(:invalid_stream_revision) { 0 }
     let(:commit_sequence) { 1 }
-    let(:invalid_commit) { EventStore::Commit.new(:stream_id => stream_id,
-                                                  :stream_revision => invalid_stream_revision,
-                                                  :commit_id => UUID.new,
-                                                  :commit_sequence => commit_sequence,
-                                                  :events => [ EventStore::EventMessage.new ] ) }
+    let(:invalid_commit) { commit(:stream_revision => invalid_stream_revision, :commit_sequence => commit_sequence) }
 
     before do
       begin
@@ -264,16 +225,8 @@ describe ::EventStore do
     let(:head_commit_sequence) { 1 }
     let(:expected_next_commit_sequence) { head_commit_sequence + 1 }
     let(:beyond_end_of_stream_commit_sequence) { expected_next_commit_sequence + 1 }
-    let(:beyond_end_of_stream) { EventStore::Commit.new(:stream_id => stream_id,
-                                                        :stream_revision => head_stream_revision + 1,
-                                                        :commit_id => UUID.new,
-                                                        :commit_sequence => beyond_end_of_stream_commit_sequence,
-                                                        :events => [ EventStore::EventMessage.new ] ) }
-    let(:already_committed) { [ EventStore::Commit.new(:stream_id => stream_id,
-                                                       :stream_revision => head_stream_revision,
-                                                       :commit_id => UUID.new,
-                                                       :commit_sequence => head_commit_sequence,
-                                                       :events => [ EventStore::EventMessage.new ] )  ] }
+    let(:beyond_end_of_stream) { commit(:stream_revision => head_stream_revision + 1, :commit_sequence => beyond_end_of_stream_commit_sequence) }
+    let(:already_committed) { [ commit(:stream_revision => head_stream_revision, :commit_sequence => head_commit_sequence) ] }
 
     before do
       persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { already_committed }
@@ -295,16 +248,8 @@ describe ::EventStore do
     let(:number_of_events_being_committed) { 1 }
     let(:expected_next_stream_revision) { head_stream_revision + 1 + number_of_events_being_committed }
     let(:beyond_end_of_stream_revision) { expected_next_stream_revision + 1 }
-    let(:beyond_end_of_stream) { EventStore::Commit.new(:stream_id => stream_id,
-                                                        :stream_revision => beyond_end_of_stream_revision,
-                                                        :commit_id => UUID.new,
-                                                        :commit_sequence => head_commit_sequence + 1,
-                                                        :events => [ EventStore::EventMessage.new ] ) }
-    let(:already_committed) { [ EventStore::Commit.new(:stream_id => stream_id,
-                                                       :stream_revision => head_stream_revision,
-                                                       :commit_id => UUID.new,
-                                                       :commit_sequence => head_commit_sequence,
-                                                       :events => [ EventStore::EventMessage.new ] )  ] }
+    let(:beyond_end_of_stream) { commit(:stream_revision => beyond_end_of_stream_revision, :commit_sequence => head_commit_sequence + 1) }
+    let(:already_committed) { [ commit(:stream_revision => head_stream_revision, :commit_sequence => head_commit_sequence) ] }
 
     before do
       persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { already_committed }
@@ -319,191 +264,156 @@ describe ::EventStore do
 
     it('throw a StorageError') { @caught.should be_an(EventStore::StorageError) }
   end
+
+  describe 'when committing an empty attempt to a stream' do
+    let(:attempt_with_no_events) { commit }
+
+    before do
+      persistence.stub(:commit).with(attempt_with_no_events) { @invoked = true }
+    end
+
+    it('drops the commit provided') { @invoked.should be_nil }
+  end
+
+  describe 'when committing with a valid an populated attempt to a stream' do
+    let(:populated_attempt) { commit }
+
+    before do
+      persistence.stub(:commit).with(populated_attempt) { @commit_invoked = true }
+      dispatcher.stub(:dispatch).with(populated_attempt) { @dispatch_invoked = true }
+
+      store.commit populated_attempt
+    end
+
+    it('provides the commit attempt to the configured persistence mechanism') { @commit_invoked.should be_true }
+    it('provides the commit to the dispatcher') { @dispatch_invoked.should be_true }
+  end
+
+  # This behavior is primarily to support a NoSQL storage solution where CommitId is not being used as the "primary key"
+  #	in a NoSQL environment, we'll most likely use StreamId + CommitSequence, which also enables optimistic concurrency.
+  describe 'when committing with an identifier that was previously read' do
+    let(:max_revision) { 2 }
+    let(:already_committed_id) { UUID.new }
+    let(:committed) { [ commit(:commit_id => already_committed_id), commit ] }
+    let(:duplicate_commit_attempt) { commit(:stream_revision => committed.last.stream_revision + 1,
+                                            :commit_id => already_committed_id,
+                                            :commit_sequence => committed.last.commit_sequence + 1) }
+
+    before do
+      persistence.stub(:get_from).with(stream_id, 0, max_revision) { committed }
+      store.get_from stream_id, 0, max_revision
+
+      begin
+        store.commit duplicate_commit_attempt
+      rescue Exception => e
+        @caught = e
+      end
+    end
+
+    it('throws a DuplicateCommitError') { @caught.should be_an(EventStore::DuplicateCommitError) }
+  end
+
+  describe 'when committing with the same commit identifier more than once' do
+    let(:duplicate_commit_id) { UUID.new }
+    let(:successful_commit) { commit(:commit_id => duplicate_commit_id) }
+    let(:duplicate_commit) { commit(:stream_revision => 2, :commit_id => duplicate_commit_id, :commit_sequence => 2) }
+
+    before do
+      store.commit successful_commit
+
+      begin
+        store.commit duplicate_commit
+      rescue Exception => e
+        @caught = e
+      end
+    end
+
+    it('throws a DuplicateCommitError') { @caught.should be_an(EventStore::DuplicateCommitError) }
+  end
+
+  describe 'when committing with a sequence less or equal to the most recent sequence for the stream' do
+    let(:head_commit_sequence) { 42 }
+    let(:head_stream_revision) { 42 }
+    let(:duplicate_commit_sequence) { head_commit_sequence }
+    let(:committed) { [ commit(:stream_revision => head_stream_revision, :commit_sequence => head_commit_sequence) ] }
+    let(:attempt) { commit(:stream_revision => head_stream_revision + 1, :commit_sequence => duplicate_commit_sequence) }
+
+    before do
+      persistence.stub(:get_from).with(stream_id, head_stream_revision, EventStore::FIXNUM_MAX) { committed }
+      store.get_from stream_id, head_stream_revision, EventStore::FIXNUM_MAX
+
+      begin
+        store.commit attempt
+      rescue Exception => e
+        @caught = e
+      end
+    end
+
+    it('throws a ConcurrencyError') { @caught.should be_an(EventStore::ConcurrencyError) }
+  end
+
+  describe 'when committing with a revision less than or equal to the most recent revision read for the stream' do
+    let(:head_stream_revision) { 3 }
+    let(:head_commit_sequence) { 2 }
+    let(:duplicate_stream_revision) { head_stream_revision }
+    let(:committed) { [ commit(:stream_revision => head_stream_revision, :commit_sequence => head_commit_sequence) ] }
+    let(:failed_attempt) { commit(:stream_revision => duplicate_stream_revision, :commit_sequence => head_commit_sequence + 1) }
+
+    before do
+      persistence.stub(:get_from).with(stream_id, head_stream_revision, EventStore::FIXNUM_MAX) { committed }
+      store.get_from stream_id, head_stream_revision, EventStore::FIXNUM_MAX
+
+      begin
+        store.commit failed_attempt
+      rescue Exception => e
+        @caught = e
+      end
+    end
+
+    it('throws a ConcurrencyError') { @caught.should be_an(EventStore::ConcurrencyError) }
+  end
+
+  describe 'when committing with a commit sequence less than or equal to the most recent commit for the stream' do
+    let(:duplicate_commit_sequence) { 1 }
+    let(:successful_attempt) { commit(:commit_sequence => duplicate_commit_sequence) }
+    let(:failed_attempt) { commit(:stream_revision => 2, :commit_sequence => duplicate_commit_sequence) }
+
+    before do
+      store.commit successful_attempt
+
+      begin
+        store.commit failed_attempt
+      rescue Exception => e
+        @caught = e
+      end
+    end
+
+    it('throws a ConcurrencyError') { @caught.should be_an(EventStore::ConcurrencyError) }
+  end
+
+  describe 'when committing with a stream revision less than or equal to the most recent commit for the stream' do
+    let(:duplicate_stream_revision) { 2 }
+    let(:successful_attempt) { commit(:stream_revision => duplicate_stream_revision) }
+    let(:failed_attempt) { commit(:stream_revision => duplicate_stream_revision, :commit_sequence => 2) }
+
+    before do
+      store.commit successful_attempt
+
+      begin
+        store.commit failed_attempt
+      rescue Exception => e
+        @caught = e
+      end
+    end
+
+    it('throws a ConcurrencyError') { @caught.should be_an(EventStore::ConcurrencyError) }
+  end
+
+  def commit(options = {})
+    defaults = { :stream_id => stream_id,
+                 :commit_id => UUID.new,
+                 :events => [ EventStore::EventMessage.new ]}
+
+    EventStore::Commit.new(defaults.merge options)
+  end
 end
-
-__END__
-	public class when_committing_an_empty_attempt_to_a_stream : using_persistence
-	{
-		static readonly Commit attemptWithNoEvents = BuildCommitStub(Guid.NewGuid());
-
-		Establish context = () =>
-			persistence.Setup(x => x.Commit(attemptWithNoEvents));
-
-		Because of = () =>
-			((ICommitEvents)store).Commit(attemptWithNoEvents);
-
-		It should_drop_the_commit_provided = () =>
-			persistence.Verify(x => x.Commit(attemptWithNoEvents), Times.AtMost(0));
-	}
-
-	[Subject("OptimisticEventStore")]
-	public class when_committing_with_a_valid_and_populated_attempt_to_a_stream : using_persistence
-	{
-		static readonly Commit populatedAttempt = BuildCommitStub(1, 1);
-
-		Establish context = () =>
-		{
-			persistence.Setup(x => x.Commit(populatedAttempt));
-			dispatcher.Setup(x => x.Dispatch(populatedAttempt));
-		};
-
-		Because of = () =>
-			((ICommitEvents)store).Commit(populatedAttempt);
-
-		It should_provide_the_commit_attempt_to_the_configured_persistence_mechanism = () =>
-			persistence.Verify(x => x.Commit(populatedAttempt), Times.Once());
-
-		It should_provide_the_commit_to_the_dispatcher = () =>
-			dispatcher.Verify(x => x.Dispatch(populatedAttempt), Times.Once());
-	}
-
-	/// <summary>
-	/// This behavior is primarily to support a NoSQL storage solution where CommitId is not being used as the "primary key"
-	/// in a NoSQL environment, we'll most likely use StreamId + CommitSequence, which also enables optimistic concurrency.
-	/// </summary>
-	[Subject("OptimisticEventStore")]
-	public class when_committing_with_an_identifier_that_was_previously_read : using_persistence
-	{
-		const int MaxRevision = 2;
-		static readonly Guid AlreadyCommittedId = Guid.NewGuid();
-		static readonly Commit[] Committed = new[]
-		{
-			BuildCommitStub(AlreadyCommittedId, 1, 1),
-			BuildCommitStub(Guid.NewGuid(), 1, 1)
-		};
-		static readonly Commit DuplicateCommitAttempt = BuildCommitStub(
-			AlreadyCommittedId, Committed.Last().StreamRevision + 1, Committed.Last().CommitSequence + 1);
-		static Exception thrown;
-
-		Establish context = () =>
-			persistence.Setup(x => x.GetFrom(streamId, 0, MaxRevision)).Returns(Committed);
-
-		Because of = () =>
-		{
-			((ICommitEvents)store).GetFrom(streamId, 0, MaxRevision).ToList();
-			thrown = Catch.Exception(() => ((ICommitEvents)store).Commit(DuplicateCommitAttempt));
-		};
-
-		It should_throw_a_DuplicateCommitException = () =>
-			thrown.ShouldBeOfType<DuplicateCommitException>();
-	}
-
-	[Subject("OptimisticEventStore")]
-	public class when_committing_with_the_same_commit_identifier_more_than_once : using_persistence
-	{
-		static readonly Guid DuplicateCommitId = Guid.NewGuid();
-		static readonly Commit SuccessfulCommit = BuildCommitStub(DuplicateCommitId, 1, 1);
-		static readonly Commit DuplicateCommit = BuildCommitStub(DuplicateCommitId, 2, 2);
-		static Exception thrown;
-
-		Establish context = () =>
-			((ICommitEvents)store).Commit(SuccessfulCommit);
-
-		Because of = () =>
-			thrown = Catch.Exception(() => ((ICommitEvents)store).Commit(DuplicateCommit));
-
-		It throw_a_DuplicateCommitException = () =>
-			thrown.ShouldBeOfType<DuplicateCommitException>();
-	}
-
-	[Subject("OptimisticEventStore")]
-	public class when_committing_with_a_sequence_less_or_equal_to_the_most_recent_sequence_for_the_stream : using_persistence
-	{
-		const int HeadStreamRevision = 42;
-		const int HeadCommitSequence = 42;
-		const int DupliateCommitSequence = HeadCommitSequence;
-		static readonly Commit[] Committed = new[] { BuildCommitStub(HeadStreamRevision, HeadCommitSequence) };
-		private static readonly Commit Attempt = BuildCommitStub(HeadStreamRevision + 1, DupliateCommitSequence);
-
-		static Exception thrown;
-
-		Establish context = () =>
-			persistence.Setup(x => x.GetFrom(streamId, HeadStreamRevision, int .MaxValue)).Returns(Committed);
-
-		Because of = () =>
-		{
-			((ICommitEvents)store).GetFrom(streamId, HeadStreamRevision, int.MaxValue).ToList();
-			thrown = Catch.Exception(() => ((ICommitEvents)store).Commit(Attempt));
-		};
-
-		It should_throw_a_ConcurrencyException = () =>
-			thrown.ShouldBeOfType<ConcurrencyException>();
-	}
-
-	[Subject("OptimisticEventStore")]
-	public class when_committing_with_a_revision_less_or_equal_to_than_the_most_recent_revision_read_for_the_stream : using_persistence
-	{
-		const int HeadStreamRevision = 3;
-		const int HeadCommitSequence = 2;
-		const int DuplicateStreamRevision = HeadStreamRevision;
-		static readonly Commit[] Committed = new[] { BuildCommitStub(HeadStreamRevision, HeadCommitSequence) };
-		static readonly Commit FailedAttempt = BuildCommitStub(DuplicateStreamRevision, HeadCommitSequence + 1);
-
-		static Exception thrown;
-
-		Establish context = () =>
-			persistence.Setup(x => x.GetFrom(streamId, HeadStreamRevision, int.MaxValue)).Returns(Committed);
-
-		Because of = () =>
-		{
-			((ICommitEvents)store).GetFrom(streamId, HeadStreamRevision, int.MaxValue).ToList();
-			thrown = Catch.Exception(() => ((ICommitEvents)store).Commit(FailedAttempt));
-		};
-
-		It should_throw_a_ConcurrencyException = () =>
-			thrown.ShouldBeOfType<ConcurrencyException>();
-	}
-
-	[Subject("OptimisticEventStore")]
-	public class when_committing_with_a_commit_sequence_less_than_or_equal_to_the_most_recent_commit_for_the_stream : using_persistence
-	{
-		const int DuplicateCommitSequence = 1;
-
-		static readonly Commit SuccessfulAttempt = BuildCommitStub(1, DuplicateCommitSequence);
-		static readonly Commit FailedAttempt = BuildCommitStub(2, DuplicateCommitSequence);
-		static Exception thrown;
-
-		Establish context = () =>
-			((ICommitEvents)store).Commit(SuccessfulAttempt);
-
-		Because of = () =>
-			thrown = Catch.Exception(() => ((ICommitEvents)store).Commit(FailedAttempt));
-
-		It should_throw_a_ConcurrencyException = () =>
-			thrown.ShouldBeOfType<ConcurrencyException>();
-	}
-
-	[Subject("OptimisticEventStore")]
-	public class when_committing_with_a_stream_revision_less_than_or_equal_to_the_most_recent_commit_for_the_stream : using_persistence
-	{
-		const int DuplicateStreamRevision = 2;
-
-		static readonly Commit SuccessfulAttempt = BuildCommitStub(DuplicateStreamRevision, 1);
-		static readonly Commit FailedAttempt = BuildCommitStub(DuplicateStreamRevision, 2);
-		static Exception thrown;
-
-		Establish context = () =>
-			((ICommitEvents)store).Commit(SuccessfulAttempt);
-
-		Because of = () =>
-			thrown = Catch.Exception(() => ((ICommitEvents)store).Commit(FailedAttempt));
-
-		It should_throw_a_ConcurrencyException = () =>
-			thrown.ShouldBeOfType<ConcurrencyException>();
-	}
-
-	[Subject("OptimisticEventStore")]
-	public class when_disposing_the_event_store : using_persistence
-	{
-		private Because of = () =>
-		{
-			store.Dispose();
-			store.Dispose();
-		};
-
-		It should_dispose_the_underlying_persistence_exactly_once = () =>
-			persistence.Verify(x => x.Dispose(), Times.Once());
-
-		It should_dispose_the_underlying_dispatcher_exactly_once = () =>
-			dispatcher.Verify(x => x.Dispose(), Times.Once());
-	}
