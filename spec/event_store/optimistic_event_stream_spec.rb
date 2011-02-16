@@ -1,13 +1,14 @@
 require_relative '../spec_helper'
 
 describe ::EventStore do
+  let(:uuid) { UUID.new }
   let(:default_stream_revision) { 1 }
   let(:default_commit_sequence) { 1 }
-  let(:stream_id) { UUID.new }
+  let(:stream_id) { uuid.generate }
   let(:persistence) { double('persistence') }
   let(:stream) { EventStore::OptimisticEventStream.new(:stream_id => stream_id, :persistence => persistence) }
 
-  after { stream_id = UUID.new }
+  after { stream_id = uuid.generate }
 
   def build_commit_stub(stream_id, revision, sequence, length)
     ::EventStore::Commit.new( :stream_id => stream_id,
@@ -161,7 +162,7 @@ describe ::EventStore do
     context 'when committing an empty changeset' do
       before do
         persistence.stub(:commit) { @persisted = true }
-        stream.commit_changes UUID.new, nil
+        stream.commit_changes uuid.generate, nil
       end
 
       it 'does not call the underlying infrastructure' do
@@ -178,7 +179,7 @@ describe ::EventStore do
     end
 
     context 'when committing any uncommitted changes' do
-      let(:commit_id) { UUID.new }
+      let(:commit_id) { uuid.generate }
       let(:uncommitted) { EventStore::EventMessage.new '' }
       let(:headers) { Hash.new }
 
@@ -259,7 +260,7 @@ describe ::EventStore do
     		@stream << uncommitted
 
         begin
-          @stream.commit_changes UUID.new, nil
+          @stream.commit_changes uuid.generate, nil
         rescue Exception => e
           @thrown = e
         end

@@ -11,6 +11,7 @@ require 'eventstore/dispatcher/asynchronous_dispatcher'
 require 'eventstore/dispatcher/synchronous_dispatcher'
 require 'eventstore/persistence/commit_filter_persistence'
 require 'eventstore/persistence/commit_tracker'
+require 'eventstore/serialization/mongodb/mongo_serializer'
 
 module EventStore
   FIXNUM_MAX = (2**(0.size * 8 -2) -1)

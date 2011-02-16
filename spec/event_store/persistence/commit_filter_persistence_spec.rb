@@ -1,12 +1,14 @@
 require_relative '../../spec_helper'
 
 describe ::EventStore do
+  let(:uuid) { UUID.new }
+
   describe 'commit filter persistence' do
-    let(:stream_id) { UUID.new }
+    let(:stream_id) { uuid.generate }
     let(:fake_persistence) { double('persistence').as_null_object }
     let(:filter_persistence) { EventStore::Persistence::CommitFilterPersistence.new fake_persistence }
 
-    after { stream_id = UUID.new }
+    after { stream_id = uuid.generate }
 
     context 'when initializing storage' do
       before do
@@ -99,7 +101,7 @@ describe ::EventStore do
     def commit(options = {})
       defaults = { :stream_id => stream_id,
                    :stream_revision => 1,
-                   :commit_id => UUID.new,
+                   :commit_id => uuid.generate,
                    :commit_sequence => 1 }
 
       EventStore::Commit.new(defaults.merge options)

@@ -1,10 +1,12 @@
 require_relative '../../spec_helper'
 
 describe ::EventStore do
+  let(:uuid) { UUID.new }
+
   describe 'commit tracker' do
     let(:max_commits_to_track_per_stream) { 2 }
     let(:tracker) { EventStore::Persistence::CommitTracker.new max_commits_to_track_per_stream }
-    let(:stream_id) { UUID.new }
+    let(:stream_id) { uuid.generate }
 
     let(:tracked_commits) { [ commit, commit, commit ] }
     let(:untracked) { commit(:stream_id => '', :commit_id => tracked_commits.first.commit_id) }
@@ -22,7 +24,7 @@ describe ::EventStore do
     def commit(options = {})
       defaults = { :stream_id => stream_id,
                    :stream_revision => 0,
-                   :commit_id => UUID.new,
+                   :commit_id => uuid.generate,
                    :commit_sequence => 0 }
 
       EventStore::Commit.new(defaults.merge options)

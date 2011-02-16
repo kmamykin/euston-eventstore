@@ -1,12 +1,13 @@
 require_relative '../spec_helper'
 
 describe ::EventStore do
-  let(:stream_id) { UUID.new }
+  let(:uuid) { UUID.new }
+  let(:stream_id) { uuid.generate }
   let(:persistence) { double('persistence').as_null_object }
   let(:dispatcher) { double('dispatcher').as_null_object }
   let(:store) { EventStore::OptimisticEventStore.new persistence, dispatcher }
 
-  after { stream_id = UUID.new }
+  after { stream_id = uuid.generate }
 
   describe 'optimistic event store' do
     context 'when creating a stream' do
@@ -292,7 +293,7 @@ describe ::EventStore do
     #	in a NoSQL environment, we'll most likely use StreamId + CommitSequence, which also enables optimistic concurrency.
     context 'when committing with an identifier that was previously read' do
       let(:max_revision) { 2 }
-      let(:already_committed_id) { UUID.new }
+      let(:already_committed_id) { uuid.generate }
       let(:committed) { [ commit(:commit_id => already_committed_id), commit ] }
       let(:duplicate_commit_attempt) { commit(:stream_revision => committed.last.stream_revision + 1,
                                               :commit_id => already_committed_id,
@@ -313,7 +314,7 @@ describe ::EventStore do
     end
 
     context 'when committing with the same commit identifier more than once' do
-      let(:duplicate_commit_id) { UUID.new }
+      let(:duplicate_commit_id) { uuid.generate }
       let(:successful_commit) { commit(:commit_id => duplicate_commit_id) }
       let(:duplicate_commit) { commit(:stream_revision => 2, :commit_id => duplicate_commit_id, :commit_sequence => 2) }
 
@@ -411,7 +412,7 @@ describe ::EventStore do
 
   def commit(options = {})
     defaults = { :stream_id => stream_id,
-                 :commit_id => UUID.new,
+                 :commit_id => uuid.generate,
                  :events => [ EventStore::EventMessage.new ]}
 
     EventStore::Commit.new(defaults.merge options)

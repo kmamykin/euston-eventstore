@@ -1,9 +1,11 @@
 require_relative '../../spec_helper'
 
 describe ::EventStore do
+  let(:uuid) { UUID.new }
+
   describe 'asynchronous dispatcher' do
     context 'when instantiating the asynchronous dispatcher' do
-      let(:stream_id) { UUID.new }
+      let(:stream_id) { uuid.generate }
       let(:commits) { [ new_commit(:stream_id => stream_id), new_commit(:stream_id => stream_id) ] }
       let(:bus) { stub('bus').as_null_object }
       let(:persistence) { stub('persistence').as_null_object }
@@ -62,9 +64,9 @@ describe ::EventStore do
     end
 
     def new_commit(options = {})
-      defaults = { :stream_id => UUID.new,
+      defaults = { :stream_id => uuid.generate,
                    :stream_revision => 0,
-                   :commit_id => UUID.new,
+                   :commit_id => uuid.generate,
                    :commit_sequence => 0 }
 
       EventStore::Commit.new(defaults.merge options)
