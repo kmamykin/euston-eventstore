@@ -8,6 +8,7 @@ require 'eventstore/snapshot'
 require 'eventstore/storage_error'
 require 'eventstore/stream_not_found_error'
 require 'eventstore/dispatcher/asynchronous_dispatcher'
+require 'eventstore/dispatcher/synchronous_dispatcher'
 require 'eventstore/persistence/commit_filter_persistence'
 require 'eventstore/persistence/commit_tracker'
 
