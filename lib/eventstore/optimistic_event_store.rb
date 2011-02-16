@@ -3,7 +3,7 @@ module EventStore
     def initialize(persistence, dispatcher)
       @persistence = persistence
       @dispatcher = dispatcher
-      @tracker = CommitTracker.new
+      @tracker = Persistence::CommitTracker.new
     end
 
     def add_snapshot(snapshot)

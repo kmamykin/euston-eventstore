@@ -3,7 +3,7 @@ require_relative '../../spec_helper'
 describe ::EventStore do
   describe 'commit tracker' do
     let(:max_commits_to_track_per_stream) { 2 }
-    let(:tracker) { EventStore::CommitTracker.new max_commits_to_track_per_stream }
+    let(:tracker) { EventStore::Persistence::CommitTracker.new max_commits_to_track_per_stream }
     let(:stream_id) { UUID.new }
 
     let(:tracked_commits) { [ commit, commit, commit ] }

@@ -4,7 +4,7 @@ describe ::EventStore do
   describe 'commit filter persistence' do
     let(:stream_id) { UUID.new }
     let(:fake_persistence) { double('persistence').as_null_object }
-    let(:filter_persistence) { EventStore::CommitFilterPersistence.new fake_persistence }
+    let(:filter_persistence) { EventStore::Persistence::CommitFilterPersistence.new fake_persistence }
 
     after { stream_id = UUID.new }
 
@@ -22,7 +22,7 @@ describe ::EventStore do
       let(:max_revision) { 43 }
       let(:commits) { [ commit(:stream_revision => 0, :commit_sequence => 0), commit(:stream_revision => 0, :commit_sequence => 0) ] }
       let(:read_filter) { double('read filter').as_null_object }
-      let(:filter_persistence) { EventStore::CommitFilterPersistence.new fake_persistence, [ read_filter ] }
+      let(:filter_persistence) { EventStore::Persistence::CommitFilterPersistence.new fake_persistence, [ read_filter ] }
 
       before do
         fake_persistence.stub(:get_from).with(:stream_id => stream_id, :min_revision => min_revision, :max_revision => max_revision) { @invoked = true; commits }
@@ -43,7 +43,7 @@ describe ::EventStore do
       let(:attempt) { commit }
       let(:filtered) { commit }
       let(:write_filter) { double('write filter').as_null_object }
-      let(:filter_persistence) { EventStore::CommitFilterPersistence.new fake_persistence, nil, [ write_filter ] }
+      let(:filter_persistence) { EventStore::Persistence::CommitFilterPersistence.new fake_persistence, nil, [ write_filter ] }
 
       before do
         write_filter.stub(:filter_write).with(attempt) { filtered }
