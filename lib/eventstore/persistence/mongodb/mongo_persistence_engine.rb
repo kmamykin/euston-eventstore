@@ -7,22 +7,46 @@ module EventStore
           @serializer = serializer
         end
 
-        def init
-          persisted_commits.ensure_index [ ['dispatched', Mongo::ASCENDING],
-                                           ['commit_stamp', Mongo::ASCENDING] ], :unique => false, :name => 'dispatched_index'
+        def add_snapshot(snapshot)
+          return false if snapshot.nil?
 
-          persisted_commits.ensure_index [ ['_id.stream_id', Mongo::ASCENDING],
-                                           ['starting_stream_revision', Mongo::ASCENDING],
-                                           ['stream_revision', Mongo::ASCENDING] ], :unique => true,  :name => 'get_from_index'
+          begin
+            mongo_snapshot = snapshot.to_hash
+            persisted_snapshots.insert mongo_snapshot
 
-          persisted_commits.ensure_index [ ['commit_stamp', Mongo::ASCENDING] ], :unique => false, :name => 'commit_stamp_index'
+            head = EventStore::Persistence::Mongodb::MongoStreamHead.new snapshot.stream_id, snapshot.stream_revision, snapshot.stream_revision
+            save_stream_head_async head
+
+            return true
+          rescue Mongo::OperationFailure => e
+            return false
+          end
+        end
+
+        def commit(attempt)
+          commit = attempt.to_hash
+
+          begin
+            # for concurrency / duplicate commit detection safe mode is required
+            persisted_commits.insert commit, :safe => true
+
+            head = EventStore::Persistence::Mongodb::MongoStreamHead.new commit.id.stream_id, commit.stream_revision, 0
+            save_stream_head_async head
+          rescue Mongo::OperationFailure => e
+            raise EventStore::StorageError(e.message, e) if e.message.include? CONCURRENCY_EXCEPTION
+
+            committed = persisted_commits.find_one(commit.to_id_query)
+
+            raise EventStore::DuplicateCommitError if committed.nil || committed[:commit_id] == commit.commit_id
+            raise EventStore::ConcurrencyError
+          end
         end
 
         def get_from(options)
           begin
             if options.has_key? :timestamp
-              query = { 'commit_stamp' => { '$gte' => options[:timestamp] } }
-              order = { 'commit_stamp' => 1 }
+              query = { 'commit_timestamp' => { '$gte' => options[:timestamp] } }
+              order = { 'commit_timestamp' => 1 }
             else
               query = { '_id.stream_id' => options[:stream_id],
                         'stream_revision' => { '$gte' => options[:min_revision] },
@@ -34,10 +58,52 @@ module EventStore
             persisted_commits.find(query)
                              .sort(order)
                              .to_a
-                             .map { |d| @serializer.deserialize d }
+                             .map { |c| EventStore::Commit.new c }
           rescue Exception => e
             raise EventStore::StorageError, e.to_s, e
           end
+        end
+
+        def get_snapshot(stream_id, max_revision)
+          query = { '_id' => { '$gt' => { 'stream_id' => stream_id,
+                                          'stream_revision' => nil },
+                               '$lt' => { 'stream_id' => stream_id,
+                                          'stream_revision' => max_revision } } }
+
+          persisted_snapshots.find(query)
+                             .sort({ '_id' => -1 })
+                             .limit(1)
+                             .to_a
+                             .map { |c| EventStore::Commit.new c }
+                             .first
+        end
+
+        def get_streams_to_snapshot(max_threshold)
+          persisted_stream_heads.find({ '$where' => "this.head_revision >= this.snapshot_revision + #{max_threshold}" })
+                                .to_a
+                                .map { |c| EventStore::Commit.new c }
+        end
+
+        def get_undispatched_commits
+          persisted_commits.find({ 'dispatched' => false })
+                           .sort({ 'commit_stamp' => 1 })
+                           .to_a
+                           .map { |c| EventStore::Commit.new c }
+        end
+
+        def init
+          persisted_commits.ensure_index [ ['dispatched', Mongo::ASCENDING],
+                                           ['commit_timestamp', Mongo::ASCENDING] ], :unique => false, :name => 'dispatched_index'
+
+          persisted_commits.ensure_index [ ['_id.stream_id', Mongo::ASCENDING],
+                                           ['starting_stream_revision', Mongo::ASCENDING],
+                                           ['stream_revision', Mongo::ASCENDING] ], :unique => true,  :name => 'get_from_index'
+
+          persisted_commits.ensure_index [ ['commit_timestamp', Mongo::ASCENDING] ], :unique => false, :name => 'commit_timestamp_index'
+        end
+
+        def mark_commit_as_dispatched(commit)
+          persisted_commits.update commit.to_id_query, { 'dispatched' => true }
         end
 
         private
@@ -54,104 +120,16 @@ module EventStore
           @store.get_collection :streams
         end
 
+        def save_stream_head_async(head)
+          query = { '_id' => head.stream_id }
+          update = { 'head_revision' => head.head_revision,
+                     'snapshot_revision' => head.snapshot_revision }
+
+          persisted_stream_heads.update query, update, :upsert => true
+        end
+
         CONCURRENCY_EXCEPTION = "E1100"
       end
     end
   end
 end
-
-__END__
-
-		public virtual void Commit(Commit attempt)
-		{
-			var commit = attempt.ToMongoCommit(this.serializer);
-
-			try
-			{
-				// for concurrency / duplicate commit detection safe mode is required
-				this.PersistedCommits.Insert(commit, SafeMode.True);
-
-				var head = new MongoStreamHead(commit.Id.StreamId, commit.StreamRevision, 0);
-				this.SaveStreamHeadAsync(head);
-			}
-			catch (MongoException e)
-			{
-				if (!e.Message.Contains(ConcurrencyException))
-					throw new StorageException(e.Message, e);
-
-				var committed = this.PersistedCommits.FindOne(commit.ToMongoCommitIdQuery());
-				if (committed == null || committed.CommitId == commit.CommitId)
-					throw new DuplicateCommitException();
-
-				throw new ConcurrencyException();
-			}
-		}
-
-		public virtual IEnumerable<Commit> GetUndispatchedCommits()
-		{
-			var query = Query.EQ("Dispatched", false);
-
-			return this.PersistedCommits
-				.Find(query)
-				.SetSortOrder("CommitStamp")
-				.Select(mc => mc.ToCommit(this.serializer));
-		}
-		public virtual void MarkCommitAsDispatched(Commit commit)
-		{
-			var query = commit.ToMongoCommitIdQuery();
-			var update = Update.Set("Dispatched", true);
-			this.PersistedCommits.Update(query, update);
-		}
-
-		public virtual IEnumerable<StreamHead> GetStreamsToSnapshot(int maxThreshold)
-		{
-			var query = Query
-				.Where(BsonJavaScript.Create("this.HeadRevision >= this.SnapshotRevision + " + maxThreshold));
-
-			return this.PersistedStreamHeads
-				.Find(query)
-				.ToArray()
-				.Select(x => x.ToStreamHead());
-		}
-		public virtual Snapshot GetSnapshot(Guid streamId, int maxRevision)
-		{
-			return this.PersistedSnapshots
-				.Find(streamId.ToSnapshotQuery(maxRevision))
-				.SetSortOrder(SortBy.Descending("_id"))
-				.SetLimit(1)
-				.Select(mc => mc.ToSnapshot(this.serializer))
-				.FirstOrDefault();
-		}
-
-		public virtual bool AddSnapshot(Snapshot snapshot)
-		{
-			if (snapshot == null)
-				return false;
-
-			try
-			{
-				var mongoSnapshot = snapshot.ToMongoSnapshot(this.serializer);
-				this.PersistedSnapshots.Insert(mongoSnapshot);
-
-				var head = new MongoStreamHead(snapshot.StreamId, snapshot.StreamRevision, snapshot.StreamRevision);
-				this.SaveStreamHeadAsync(head);
-
-				return true;
-			}
-			catch (MongoException)
-			{
-				return false;
-			}
-		}
-
-		private void SaveStreamHeadAsync(MongoStreamHead streamHead)
-		{
-			// ThreadPool.QueueUserWorkItem(item => this.PersistedStreamHeads.Save(item as StreamHead), streamHead);
-			var query = Query.EQ("_id", streamHead.StreamId);
-			var update = Update
-				.Set("HeadRevision", streamHead.HeadRevision)
-				.Set("SnapshotRevision", streamHead.SnapshotRevision);
-
-			this.PersistedStreamHeads.Update(query, update, UpdateFlags.Upsert);
-		}
-	}

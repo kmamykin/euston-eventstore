@@ -11,6 +11,10 @@ require 'eventstore/dispatcher/asynchronous_dispatcher'
 require 'eventstore/dispatcher/synchronous_dispatcher'
 require 'eventstore/persistence/commit_filter_persistence'
 require 'eventstore/persistence/commit_tracker'
+require 'eventstore/persistence/mongodb/mongo_commit'
+require 'eventstore/persistence/mongodb/mongo_commit_id'
+require 'eventstore/persistence/mongodb/mongo_persistence_engine'
+require 'eventstore/persistence/mongodb/mongo_stream_head'
 require 'eventstore/serialization/mongodb/mongo_serializer'
 
 module EventStore
