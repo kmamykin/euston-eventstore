@@ -2,48 +2,69 @@ require_relative '../../spec_helper'
 
 describe ::EventStore do
   describe 'mongodb persistence' do
-    let(:factory) {  }
+    let(:uuid) { UUID.new }
+    let(:database) { 'event_store_tests' }
+    let(:config) { EventStore::Persistence::Mongodb::Config }
+    let(:factory) { EventStore::Persistence::Mongodb::MongoPersistenceFactory }
+    let(:stream_id) { uuid.generate }
 
     context 'when a commit is successfully persisted' do
+      let(:now) { Time.now.utc + (60 * 60 * 24 * 7 * 52) }
+      let(:attempt) { new_attempt(:commit_timestamp => now) }
 
+      before do
+        config.instance.database = database
+        
+        @persistence = factory.build
+        @persistence.init
+        @persistence.commit attempt
+
+        @persisted = @persistence.get_from(:stream_id => stream_id,
+                                           :min_revision => 0,
+                                           :max_revision => EventStore::FIXNUM_MAX).first
+      end
+
+      it('correctly persists the stream identifier') { @persisted.stream_id.should == attempt.stream_id }
+      it('correctly persists the stream revision') { @persisted.stream_revision.should == attempt.stream_revision }
+      it('correctly persists the commit identifier') { @persisted.commit_id.should == attempt.commit_id }
+      it('correctly persists the commit sequence') { @persisted.commit_sequence.should == attempt.commit_sequence }
+
+		  # persistence engines have varying levels of precision with respect to time.
+		  it('correctly persists the commit timestamp') { (@persisted.commit_timestamp - now).should be <= 1 }
+
+      it('correctly persists the headers') { @persisted.headers.should have(attempt.headers.length).items }
+      it('correctly persists the events') { @persisted.events.should have(attempt.events.length).items }
+      it('makes the commit available to be read from the stream') {
+        @persistence.get_from(:stream_id => stream_id,
+                              :min_revision => 0,
+                              :max_revision => EventStore::FIXNUM_MAX).first.commit_id.should == attempt.commit_id }
+
+      it('adds the commit to the set of undispatched commits') {
+			  @persistence.get_undispatched_commits.detect { |x| x.commit_id == attempt.commit_id }.first.should_not be_nil }
+
+      it('causes the stream to be found in the list of streams to snapshot') {
+        @persistence.get_streams_to_snapshot(1).detect { |x| x.stream_id == stream_id }.first.should_not be_nil }
+    end
+    
+    def new_attempt(options = {})
+      defaults = { :stream_id => stream_id,
+                   :stream_revision => 2,
+                   :commit_id => uuid.generate,
+                   :commit_sequence => 1,
+                   :commit_timestamp => Time.now.utc,
+                   :headers => { 'A header' => 'A string value',
+                                 'Another header' => 2 },
+                   :events => [ EventStore::EventMessage.new(:some_property => 'test'),
+                                EventStore::EventMessage.new(:some_property => 'test2') ] }
+
+      EventStore::Commit.new(defaults.merge options)
     end
   end
 end
 
 __END__
 
-#pragma warning disable 169
-// ReSharper disable InconsistentNaming
-
-namespace EventStore.Persistence.AcceptanceTests
-{
-	using System;
-	using System.Linq;
-	using Machine.Specifications;
-	using Persistence;
-
-  public abstract class using_the_persistence_engine
-	{
-		protected static readonly IPersistenceFactory Factory = new PersistenceFactoryScanner().GetFactory();
-		protected static Guid streamId = Guid.NewGuid();
-		protected static IPersistStreams persistence;
-
-		Establish context = () =>
-		{
-			persistence = Factory.Build();
-			persistence.Initialize();
-		};
-
-		Cleanup everything = () =>
-		{
-			persistence.Dispose();
-			persistence = null;
-
-			streamId = Guid.NewGuid();
-		};
-	}
-
-	[Subject("Persistence")]
+[Subject("Persistence")]
 	public class when_a_commit_is_successfully_persisted : using_the_persistence_engine
 	{
 		static readonly DateTime now = DateTime.UtcNow.AddYears(1);
@@ -86,6 +107,37 @@ namespace EventStore.Persistence.AcceptanceTests
 
 		It should_cause_the_stream_to_be_found_in_the_list_of_streams_to_snapshot = () =>
 			persistence.GetStreamsToSnapshot(1).First(x => x.StreamId == streamId).ShouldNotBeNull();
+	}
+
+#pragma warning disable 169
+// ReSharper disable InconsistentNaming
+
+namespace EventStore.Persistence.AcceptanceTests
+{
+	using System;
+	using System.Linq;
+	using Machine.Specifications;
+	using Persistence;
+
+  public abstract class using_the_persistence_engine
+	{
+		protected static readonly IPersistenceFactory Factory = new PersistenceFactoryScanner().GetFactory();
+		protected static Guid streamId = Guid.NewGuid();
+		protected static IPersistStreams persistence;
+
+		Establish context = () =>
+		{
+			persistence = Factory.Build();
+			persistence.Initialize();
+		};
+
+		Cleanup everything = () =>
+		{
+			persistence.Dispose();
+			persistence = null;
+
+			streamId = Guid.NewGuid();
+		};
 	}
 
 	[Subject("Persistence")]

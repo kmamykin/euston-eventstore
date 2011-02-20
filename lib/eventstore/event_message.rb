@@ -3,7 +3,7 @@ module EventStore
   # Represents a single element in a stream of events.
   class EventMessage
     def initialize(body = nil)
-      @headers = OpenStruct.new
+      @headers = {}
       @body = body
     end
 

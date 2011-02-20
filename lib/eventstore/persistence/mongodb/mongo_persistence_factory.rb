@@ -2,31 +2,12 @@ module EventStore
   module Persistence
     module Mongodb
       class MongoPersistenceFactory
-        def initialize(connection_name, serializer)
-          @connection_name = connection_name
-          @serializer = serializer
+        def self.build
+          config = Mongodb::Config.instance
+          connection = Mongo::Connection.new(config.host, config.port, config.options)
+          
+          MongoPersistenceEngine.new connection.db(config.database), EventStore::Serialization::Mongodb::MongoSerializer.new
         end
-
-        def build
-#          connection_string =
-        end
-#
-#		public virtual IPersistStreams Build()
-#		{
-#			var connectionString = this.TransformConnectionString(this.GetConnectionString());
-#			var database = MongoDatabase.Create(connectionString);
-#			return new MongoPersistenceEngine(database, this.serializer);
-#		}
-#
-#		protected virtual string GetConnectionString()
-#		{
-#			return ConfigurationManager.ConnectionStrings[this.connectionName].ConnectionString;
-#		}
-#
-#		protected virtual string TransformConnectionString(string connectionString)
-#		{
-#			return connectionString;
-#		}
       end
     end
   end

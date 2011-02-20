@@ -2,7 +2,7 @@ module EventStore
   module Persistence
     module Mongodb
       module MongoCommit
-        extend ActiveSupport::Concern
+        extend ::ActiveSupport::Concern
 
         def to_hash
           {
@@ -12,7 +12,7 @@ module EventStore
             :commit_id => commit_id,
             :commit_timestamp => commit_timestamp,
             :headers => headers,
-            :payload => BSON.serialize events
+            :payload => events.map { |e| e.to_hash }
           }
         end
 
