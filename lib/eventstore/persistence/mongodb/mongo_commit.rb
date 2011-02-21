@@ -10,7 +10,8 @@ module EventStore
             :starting_stream_revision => stream_revision - events.length - 1,
             :stream_revision => stream_revision,
             :commit_id => commit_id,
-            :commit_timestamp => commit_timestamp,
+            :commit_timestamp => commit_timestamp.to_f,
+            :friendly_commit_timestamp => commit_timestamp,
             :headers => headers,
             :payload => events.map { |e| e.to_hash }
           }

@@ -18,7 +18,7 @@ module EventStore
             save_stream_head_async head
 
             return true
-          rescue Mongo::OperationFailure => e
+          rescue Mongo::OperationFailure
             return false
           end
         end
@@ -29,16 +29,15 @@ module EventStore
           begin
             # for concurrency / duplicate commit detection safe mode is required
             persisted_commits.insert commit, :safe => true
-ap commit
 
-            head = EventStore::Persistence::Mongodb::MongoStreamHead.new commit.id.stream_id, commit.stream_revision, 0
+            head = EventStore::Persistence::Mongodb::MongoStreamHead.new commit[:id][:stream_id], commit[:stream_revision], 0
             save_stream_head_async head
           rescue Mongo::OperationFailure => e
-            raise EventStore::StorageError.new(e.message, e) if e.message.include? CONCURRENCY_EXCEPTION
+            raise(EventStore::StorageError, e.message, e.backtrace) if e.message.include? CONCURRENCY_EXCEPTION
 
-            committed = persisted_commits.find_one(commit.to_id_query)
+            committed = persisted_commits.find_one(attempt.to_id_query)
 
-            raise EventStore::DuplicateCommitError if committed.nil || committed[:commit_id] == commit.commit_id
+            raise EventStore::DuplicateCommitError if committed.nil || committed[:commit_id] == commit[:commit_id]
             raise EventStore::ConcurrencyError
           end
         end
