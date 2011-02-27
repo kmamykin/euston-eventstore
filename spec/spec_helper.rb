@@ -1,6 +1,6 @@
 require 'ap'
 require 'eventstore'
-require 'mongoid'
+require 'mongo'
 require 'uuid'
 
 require 'rspec/core'
@@ -10,17 +10,18 @@ require 'rspec/mocks'
 
 require 'support/array_enumeration_counter'
 
-Mongoid.configure do |config|
-  config.autocreate_indexes = false
-  config.logger = Logger.new('mongo.log')
-  config.master = Mongo::Connection.new('localhost', 27017, :logger => config.logger).db('protean')
-  config.persist_in_safe_mode = true
-  config.use_utc = true
-end
+mongo_config = EventStore::Persistence::Mongodb::Config.instance
+mongo_config.database = 'event_store_tests'
 
 RSpec.configure do |config|
   config.fail_fast = true
-  config.after :suite do
-    Mongoid.master.collections.select {|c| c.name !~ /system/ }.each(&:drop)
+  
+  config.before :each do
+    connection = Mongo::Connection.new(mongo_config.host, mongo_config.port, mongo_config.options)
+    connection.db(mongo_config.database).collections.select {|c| c.name !~ /system/ }.each(&:drop)
   end
+  
+#  config.after :suite do
+#    Mongoid.master.collections.select {|c| c.name !~ /system/ }.each(&:drop)
+#  end
 end

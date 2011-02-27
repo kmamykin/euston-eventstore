@@ -40,10 +40,10 @@ describe ::EventStore do
                               :max_revision => EventStore::FIXNUM_MAX).first.commit_id.should == attempt.commit_id }
 
       it('adds the commit to the set of undispatched commits') {
-			  @persistence.get_undispatched_commits.detect { |x| x.commit_id == attempt.commit_id }.first.should_not be_nil }
+			  @persistence.get_undispatched_commits.detect { |x| x.commit_id == attempt.commit_id }.should_not be_nil }
 
       it('causes the stream to be found in the list of streams to snapshot') {
-        @persistence.get_streams_to_snapshot(1).detect { |x| x.stream_id == stream_id }.first.should_not be_nil }
+        @persistence.get_streams_to_snapshot(1).detect { |x| x.stream_id == stream_id }.should_not be_nil }
     end
     
     def new_attempt(options = {})

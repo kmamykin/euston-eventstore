@@ -1,4 +1,5 @@
 require 'active_support'
+require 'active_support/hash_with_indifferent_access'
 require 'eventstore/commit'
 require 'eventstore/concurrency_error'
 require 'eventstore/duplicate_commit_error'

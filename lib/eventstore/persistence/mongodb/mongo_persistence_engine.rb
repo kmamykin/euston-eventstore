@@ -13,9 +13,10 @@ module EventStore
           begin
             mongo_snapshot = snapshot.to_hash
             persisted_snapshots.insert mongo_snapshot
-
-            head = EventStore::Persistence::Mongodb::MongoStreamHead.new snapshot.stream_id, snapshot.stream_revision, snapshot.stream_revision
-            save_stream_head_async head
+#            persisted_stream_heads.update
+#
+#            head = EventStore::Persistence::Mongodb::MongoStreamHead.new snapshot.stream_id, snapshot.stream_revision, snapshot.stream_revision
+#            update_stream_head_async head
 
             return true
           rescue Mongo::OperationFailure
@@ -46,21 +47,18 @@ module EventStore
           begin
             if options.has_key? :timestamp
               query = { 'commit_timestamp' => { '$gte' => options[:timestamp] } }
-              order = { 'commit_timestamp' => 1 }
+              order = [ 'commit_timestamp', Mongo::ASCENDING ]
             else
-              query = { '_id.stream_id' => options[:stream_id],
+              query = { 'id.stream_id' => options[:stream_id],
                         'stream_revision' => { '$gte' => options[:min_revision] },
                         'starting_stream_revision' => { '$lte' => options[:max_revision] } }
 
-              order = { 'starting_stream_revision' => 1 }
+              order = [ 'starting_stream_revision', Mongo::ASCENDING ]
             end
 
-            persisted_commits.find(query)
-                             .sort(order)
-                             .to_a
-                             .map { |c| EventStore::Commit.new c }
+            persisted_commits.find(query).sort(order).to_a.map { |commit| hash_to_mongo_commit commit }
           rescue Exception => e
-            raise EventStore::StorageError, e.to_s, e
+            raise EventStore::StorageError, e.to_s, e.backtrace
           end
         end
 
@@ -74,28 +72,28 @@ module EventStore
                              .sort({ '_id' => -1 })
                              .limit(1)
                              .to_a
-                             .map { |c| EventStore::Commit.new c }
+                             .map { |hash| hash_to_mongo_commit hash }
                              .first
         end
 
         def get_streams_to_snapshot(max_threshold)
           persisted_stream_heads.find({ '$where' => "this.head_revision >= this.snapshot_revision + #{max_threshold}" })
                                 .to_a
-                                .map { |c| EventStore::Commit.new c }
+                                .map { |hash| hash_to_mongo_stream_head hash }
         end
 
         def get_undispatched_commits
           persisted_commits.find({ 'dispatched' => false })
-                           .sort({ 'commit_stamp' => 1 })
+                           .sort([ 'commit_stamp', Mongo::ASCENDING ])
                            .to_a
-                           .map { |c| EventStore::Commit.new c }
+                           .map { |hash| hash_to_mongo_commit hash }
         end
 
         def init
           persisted_commits.ensure_index [ ['dispatched', Mongo::ASCENDING],
                                            ['commit_timestamp', Mongo::ASCENDING] ], :unique => false, :name => 'dispatched_index'
 
-          persisted_commits.ensure_index [ ['_id.stream_id', Mongo::ASCENDING],
+          persisted_commits.ensure_index [ ['id.stream_id', Mongo::ASCENDING],
                                            ['starting_stream_revision', Mongo::ASCENDING],
                                            ['stream_revision', Mongo::ASCENDING] ], :unique => true,  :name => 'get_from_index'
 
@@ -107,6 +105,21 @@ module EventStore
         end
 
         private
+
+        def hash_to_mongo_commit(hash)
+          hash = ::ActiveSupport::HashWithIndifferentAccess.new hash
+          hash[:id] = ::ActiveSupport::HashWithIndifferentAccess.new hash[:id]
+          hash[:commit_timestamp] = Time.at hash[:commit_timestamp]
+          hash.delete :friendly_timestamp
+          hash[:headers] = ::ActiveSupport::HashWithIndifferentAccess.new hash[:headers]
+          hash[:payload] = hash[:payload].map { |p| ::ActiveSupport::HashWithIndifferentAccess.new p }
+
+          EventStore::Commit.from_hash hash
+        end
+
+        def hash_to_mongo_stream_head(hash)
+          EventStore::Persistence::Mongodb::MongoStreamHead.new hash['stream_id'], hash['head_revision'], hash['snapshot_revision']
+        end
 
         def persisted_commits
           @store.collection :commits
@@ -121,7 +134,7 @@ module EventStore
         end
 
         def save_stream_head_async(head)
-          query = { '_id' => head.stream_id }
+          query = { 'id' => head.stream_id }
           update = { 'head_revision' => head.head_revision,
                      'snapshot_revision' => head.snapshot_revision }
 
