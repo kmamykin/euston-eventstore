@@ -47,6 +47,19 @@ describe ::EventStore do
       it('causes the stream to be found in the list of streams to snapshot') {
         @persistence.get_streams_to_snapshot(1).detect { |x| x.stream_id == stream_id }.should_not be_nil }
     end
+
+    context 'when a commit is successfully persisted' do
+      let(:load_from_commit_containing_revision) { 3 }
+      let(:up_to_commit_with_containing_revision) { 5 }
+      let(:oldest) { new_attempt }
+      let(:oldest2) { next_attempt(oldest) }
+      let(:oldest3) { next_attempt(oldest2) }
+      let(:newest) { next_attempt(oldest3) }
+
+      before do
+
+      end
+    end
     
     def new_attempt(options = {})
       defaults = { :stream_id => stream_id,
@@ -60,6 +73,17 @@ describe ::EventStore do
                                 EventStore::EventMessage.new(:some_property => 'test2') ] }
 
       EventStore::Commit.new(defaults.merge options)
+    end
+
+    def next_attempt(attempt)
+      EventStore::Commit.new(:stream_id => attempt.stream_id,
+                             :stream_revision => attempt.stream_revision + 2,
+                             :commit_id => uuid.generate,
+                             :commit_sequence => attempt.commit_sequence + 1,
+                             :commit_timestamp => attempt.commit_timestamp,
+                             :headers => {},
+                             :events => [ EventStore::EventMessage.new(:some_property => 'Another test'),
+                                          EventStore::EventMessage.new(:some_property => 'Another test2') ])
     end
   end
 end
