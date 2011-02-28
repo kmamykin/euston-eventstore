@@ -15,7 +15,7 @@ module EventStore
         end
 
         def options
-          @options ||= {}
+          @options ||= { :safe => { :fsync => true }}
         end
 
         attr_writer :host, :port, :options

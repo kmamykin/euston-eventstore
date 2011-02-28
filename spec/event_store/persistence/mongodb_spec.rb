@@ -19,6 +19,8 @@ describe ::EventStore do
         @persistence.init
         @persistence.commit attempt
 
+        sleep 0.25
+
         @persisted = @persistence.get_from(:stream_id => stream_id,
                                            :min_revision => 0,
                                            :max_revision => EventStore::FIXNUM_MAX).first
@@ -65,52 +67,33 @@ end
 __END__
 
 [Subject("Persistence")]
-	public class when_a_commit_is_successfully_persisted : using_the_persistence_engine
+	public class when_reading_from_a_given_revision : using_the_persistence_engine
 	{
-		static readonly DateTime now = DateTime.UtcNow.AddYears(1);
-		static readonly Commit attempt = streamId.BuildAttempt(now);
-		static Commit persisted;
+		const int LoadFromCommitContainingRevision = 3;
+		const int UpToCommitWithContainingRevision = 5;
+		static readonly Commit oldest = streamId.BuildAttempt(); // 2 events, revision 1-2
+		static readonly Commit oldest2 = oldest.BuildNextAttempt(); // 2 events, revision 3-4
+		static readonly Commit oldest3 = oldest2.BuildNextAttempt(); // 2 events, revision 5-6
+		static readonly Commit newest = oldest3.BuildNextAttempt(); // 2 events, revision 7-8
+		static Commit[] committed;
 
 		Establish context = () =>
-			persistence.Commit(attempt);
+		{
+			persistence.Commit(oldest);
+			persistence.Commit(oldest2);
+			persistence.Commit(oldest3);
+			persistence.Commit(newest);
+		};
 
 		Because of = () =>
-			persisted = persistence.GetFrom(streamId, 0, int.MaxValue).First();
+			committed = persistence.GetFrom(streamId, LoadFromCommitContainingRevision, UpToCommitWithContainingRevision).ToArray();
 
-		It should_correctly_persist_the_stream_identifier = () =>
-			persisted.StreamId.ShouldEqual(attempt.StreamId);
+		It should_start_from_the_commit_which_contains_the_min_stream_revision_specified = () =>
+			committed.First().CommitId.ShouldEqual(oldest2.CommitId); // contains revision 3
 
-		It should_correctly_persist_the_stream_stream_revision = () =>
-			persisted.StreamRevision.ShouldEqual(attempt.StreamRevision);
-
-		It should_correctly_persist_the_commit_identifier = () =>
-			persisted.CommitId.ShouldEqual(attempt.CommitId);
-
-		It should_correctly_persist_the_commit_sequence = () =>
-			persisted.CommitSequence.ShouldEqual(attempt.CommitSequence);
-
-		// persistence engines have varying levels of precision with respect to time.
-		It should_correctly_persist_the_commit_stamp = () =>
-			persisted.CommitStamp.Subtract(now).ShouldBeLessThan(TimeSpan.FromSeconds(1));
-
-		It should_correctly_persist_the_headers = () =>
-			persisted.Headers.Count.ShouldEqual(attempt.Headers.Count);
-
-		It should_correctly_persist_the_events = () =>
-			persisted.Events.Count.ShouldEqual(attempt.Events.Count);
-
-		It should_make_the_commit_available_to_be_read_from_the_stream = () =>
-			persistence.GetFrom(streamId, 0, int.MaxValue).First().CommitId.ShouldEqual(attempt.CommitId);
-
-		It should_add_the_commit_to_the_set_of_undispatched_commits = () =>
-			persistence.GetUndispatchedCommits().FirstOrDefault(x => x.CommitId == attempt.CommitId).ShouldNotBeNull();
-
-		It should_cause_the_stream_to_be_found_in_the_list_of_streams_to_snapshot = () =>
-			persistence.GetStreamsToSnapshot(1).First(x => x.StreamId == streamId).ShouldNotBeNull();
+		It should_read_up_to_the_commit_which_contains_the_max_stream_revision_specified = () =>
+			committed.Last().CommitId.ShouldEqual(oldest3.CommitId); // contains revision 5
 	}
-
-#pragma warning disable 169
-// ReSharper disable InconsistentNaming
 
 namespace EventStore.Persistence.AcceptanceTests
 {
@@ -138,35 +121,6 @@ namespace EventStore.Persistence.AcceptanceTests
 
 			streamId = Guid.NewGuid();
 		};
-	}
-
-	[Subject("Persistence")]
-	public class when_reading_from_a_given_revision : using_the_persistence_engine
-	{
-		const int LoadFromCommitContainingRevision = 3;
-		const int UpToCommitWithContainingRevision = 5;
-		static readonly Commit oldest = streamId.BuildAttempt(); // 2 events, revision 1-2
-		static readonly Commit oldest2 = oldest.BuildNextAttempt(); // 2 events, revision 3-4
-		static readonly Commit oldest3 = oldest2.BuildNextAttempt(); // 2 events, revision 5-6
-		static readonly Commit newest = oldest3.BuildNextAttempt(); // 2 events, revision 7-8
-		static Commit[] committed;
-
-		Establish context = () =>
-		{
-			persistence.Commit(oldest);
-			persistence.Commit(oldest2);
-			persistence.Commit(oldest3);
-			persistence.Commit(newest);
-		};
-
-		Because of = () =>
-			committed = persistence.GetFrom(streamId, LoadFromCommitContainingRevision, UpToCommitWithContainingRevision).ToArray();
-
-		It should_start_from_the_commit_which_contains_the_min_stream_revision_specified = () =>
-			committed.First().CommitId.ShouldEqual(oldest2.CommitId); // contains revision 3
-
-		It should_read_up_to_the_commit_which_contains_the_max_stream_revision_specified = () =>
-			committed.Last().CommitId.ShouldEqual(oldest3.CommitId); // contains revision 5
 	}
 
 	[Subject("Persistence")]

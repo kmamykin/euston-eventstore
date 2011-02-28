@@ -20,8 +20,4 @@ RSpec.configure do |config|
     connection = Mongo::Connection.new(mongo_config.host, mongo_config.port, mongo_config.options)
     connection.db(mongo_config.database).collections.select {|c| c.name !~ /system/ }.each(&:drop)
   end
-  
-#  config.after :suite do
-#    Mongoid.master.collections.select {|c| c.name !~ /system/ }.each(&:drop)
-#  end
 end

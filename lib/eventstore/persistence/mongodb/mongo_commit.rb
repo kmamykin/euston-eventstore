@@ -11,10 +11,10 @@ module EventStore
 
         module ClassMethods
           def from_hash(hash)
-            EventStore::Commit.new :stream_id => hash[:id][:stream_id],
+            EventStore::Commit.new :stream_id => hash[:_id][:stream_id],
                                    :stream_revision => hash[:stream_revision],
                                    :commit_id => hash[:commit_id],
-                                   :commit_sequence => hash[:id][:commit_sequence],
+                                   :commit_sequence => hash[:_id][:commit_sequence],
                                    :commit_timestamp => hash[:commit_timestamp],
                                    :headers => hash[:headers],
                                    :events => hash[:payload]
@@ -30,7 +30,7 @@ module EventStore
 
         def to_hash
           {
-            :id => { :stream_id => stream_id, :commit_sequence => commit_sequence },
+            :_id => { :stream_id => stream_id, :commit_sequence => commit_sequence },
             :starting_stream_revision => stream_revision - events.length - 1,
             :stream_revision => stream_revision,
             :commit_id => commit_id,
@@ -42,9 +42,9 @@ module EventStore
           }
         end
 
-        def to_id_query
-          { 'id' => { 'commit_sequence' => commit_sequence, 'stream_id' => stream_id } }
-        end
+#        def to_id_query
+#          { 'id' => { 'commit_sequence' => commit_sequence, 'stream_id' => stream_id } }
+#        end
       end
     end
   end
