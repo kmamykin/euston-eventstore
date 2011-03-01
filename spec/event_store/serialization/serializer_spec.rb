@@ -3,12 +3,12 @@ require_relative './simple_message'
 
 describe ::EventStore do
   describe 'serializer' do
-    let(:serializer) { EventStore::Serialization::Mongodb::MongoSerializer.new }
+    let(:serializer) { EventStore::Serialization::Mongodb::MongoSerializer }
 
     context 'when serializing a simple message' do
       let(:message) { new_simple_message }
       let(:serialized) { serializer.serialize message }
-      let(:deserialized) { OpenStruct.new serializer.deserialize(serialized) }
+      let(:deserialized) { serializer.deserialize(serialized) }
 
       it('deserializes a message which contains the same id as the serialized message') { deserialized.id.should == message.id }
       it('deserializes a message which contains the same value as the serialized message') { deserialized.value.should == message.value }

@@ -38,12 +38,15 @@ module EventStore
             :friendly_commit_timestamp => commit_timestamp.utc.strftime('%d-%b-%Y %H:%M:%S.%N'),
             :dispatched => dispatched || false,
             :headers => headers,
-            :payload => events.map { |e| e.to_hash }
+            :payload => events.map { |e| EventStore::Serialization::Mongodb::MongoSerializer.serialize e }
           }
         end
 
         def to_id_query
-          { '_id.commit_sequence' => commit_sequence, '_id.stream_id' => stream_id }
+          {
+            '_id.commit_sequence' => commit_sequence,
+            '_id.stream_id' => stream_id
+          }
         end
       end
     end

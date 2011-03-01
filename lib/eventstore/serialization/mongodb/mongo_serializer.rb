@@ -4,17 +4,12 @@ module EventStore
   module Serialization
     module Mongodb
       class MongoSerializer
-        def serialize(graph)
-          unless graph.is_a? Hash
-            raise "Cannot serialize object of type #{graph.class} since it is not a Hash nor responds to to_hash" unless graph.respond_to? :to_hash
-            graph = graph.to_hash
-          end
-
-          BSON.serialize graph
+        def self.serialize(graph)
+          BSON.serialize :yaml => graph.to_yaml
         end
 
-        def deserialize(input)
-          BSON.deserialize input
+        def self.deserialize(input)
+          YAML::load(BSON.deserialize(input)['yaml'])
         end
       end
     end

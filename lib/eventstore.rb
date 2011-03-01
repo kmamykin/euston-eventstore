@@ -20,6 +20,7 @@ require 'eventstore/persistence/mongodb/mongo_config'
 require 'eventstore/persistence/mongodb/mongo_event_message'
 require 'eventstore/persistence/mongodb/mongo_persistence_engine'
 require 'eventstore/persistence/mongodb/mongo_persistence_factory'
+require 'eventstore/persistence/mongodb/mongo_snapshot'
 require 'eventstore/persistence/mongodb/mongo_stream_head'
 require 'eventstore/serialization/mongodb/mongo_serializer'
 

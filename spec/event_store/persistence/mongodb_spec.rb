@@ -152,6 +152,18 @@ describe ::EventStore do
       it('raises a DuplicateCommitError') { @caught.should be_an(EventStore::DuplicateCommitError) }
     end
 
+    context 'when a commit has been marked as dispatched' do
+      let(:attempt) { new_attempt }
+
+      before do
+        @persistence.commit attempt
+        @persistence.mark_commit_as_dispatched attempt
+      end
+
+      it('is no longer found in the set of undispatched commits') {
+        @persistence.get_undispatched_commits.detect { |c| c.commit_id == attempt.commit_id }.should be_nil }
+    end
+
     def new_attempt(options = {})
       defaults = { :stream_id => stream_id,
                    :stream_revision => 2,
@@ -177,36 +189,21 @@ describe ::EventStore do
                                           EventStore::EventMessage.new(:some_property => 'Another test2') ])
     end
 
-    context 'when a commit has been marked as dispatched' do
-      let(:attempt) { new_attempt }
+    context 'when saving a snapshot' do
+      let(:snapshot) { EventStore::Snapshot.new stream_id, 1, 'snapshot' }
 
       before do
-        @persistence.commit attempt
-        @persistence.mark_commit_as_dispatched attempt
+        @persistence.commit new_attempt
+        @added = @persistence.add_snapshot snapshot
       end
 
-      it('is no longer found in the set of undispatched commits') {
-        @persistence.get_undispatched_commits.detect { |c| c.commit_id == attempt.commit_id }.should be_nil }
+      it('indicates the snapshot was added') { added.should be_true }
+      it('is able to retrieve the snapshot') { @persistence.get_snapshot(stream_id, snapshot.stream_revision).should_not be_nil }
     end
   end
 end
 
 __END__
-
-	[Subject("Persistence")]
-	public class when_a_commit_has_been_marked_as_dispatched : using_the_persistence_engine
-	{
-		static readonly Commit attempt = streamId.BuildAttempt();
-
-		Establish context = () =>
-			persistence.Commit(attempt);
-
-		Because of = () =>
-			persistence.MarkCommitAsDispatched(attempt);
-
-		It should_no_longer_be_found_in_the_set_of_undispatched_commits = () =>
-			persistence.GetUndispatchedCommits().FirstOrDefault(x => x.CommitId == attempt.CommitId).ShouldBeNull();
-	}
 
 	[Subject("Persistence")]
 	public class when_saving_a_snapshot : using_the_persistence_engine
