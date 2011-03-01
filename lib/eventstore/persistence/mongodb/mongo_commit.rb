@@ -31,7 +31,7 @@ module EventStore
         def to_hash
           {
             :_id => { :stream_id => stream_id, :commit_sequence => commit_sequence },
-            :starting_stream_revision => stream_revision - events.length - 1,
+            :starting_stream_revision => stream_revision - (events.length - 1),
             :stream_revision => stream_revision,
             :commit_id => commit_id,
             :commit_timestamp => commit_timestamp.to_f,
@@ -42,9 +42,9 @@ module EventStore
           }
         end
 
-#        def to_id_query
-#          { 'id' => { 'commit_sequence' => commit_sequence, 'stream_id' => stream_id } }
-#        end
+        def to_id_query
+          { '_id.commit_sequence' => commit_sequence, '_id.stream_id' => stream_id }
+        end
       end
     end
   end

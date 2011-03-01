@@ -30,11 +30,11 @@ module EventStore
             persisted_commits.insert commit, :safe => true
             update_stream_head_async commit[:_id][:stream_id], commit[:stream_revision], commit[:_id][:commit_sequence] == 1
           rescue Mongo::OperationFailure => e
-            raise(EventStore::StorageError, e.message, e.backtrace) if e.message.include? CONCURRENCY_EXCEPTION
+            raise(EventStore::StorageError, e.message, e.backtrace) unless e.message.include? CONCURRENCY_EXCEPTION
 
             committed = persisted_commits.find_one(attempt.to_id_query)
 
-            raise EventStore::DuplicateCommitError if committed.nil || committed[:commit_id] == commit[:commit_id]
+            raise EventStore::DuplicateCommitError if committed.nil? || committed['commit_id'] == commit[:commit_id]
             raise EventStore::ConcurrencyError
           end
         end
@@ -135,7 +135,6 @@ module EventStore
               head = EventStore::Persistence::StreamHead.new stream_id, stream_revision, 0
               persisted_stream_heads.insert head.to_hash
             else
-              ap [stream_id, stream_revision, first_commit]
               persisted_stream_heads.update({ :_id => stream_id }, { :head_revision => stream_revision })
             end
           end

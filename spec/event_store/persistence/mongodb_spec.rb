@@ -8,15 +8,18 @@ describe ::EventStore do
     let(:factory) { EventStore::Persistence::Mongodb::MongoPersistenceFactory }
     let(:stream_id) { uuid.generate }
 
+    before do
+      config.instance.database = database
+
+      @persistence = factory.build
+      @persistence.init
+    end
+
     context 'when a commit is successfully persisted' do
       let(:now) { Time.now.utc + (60 * 60 * 24 * 7 * 52) }
       let(:attempt) { new_attempt(:commit_timestamp => now) }
 
       before do
-        config.instance.database = database
-        
-        @persistence = factory.build
-        @persistence.init
         @persistence.commit attempt
 
         sleep 0.25
@@ -50,17 +53,105 @@ describe ::EventStore do
 
     context 'when a commit is successfully persisted' do
       let(:load_from_commit_containing_revision) { 3 }
-      let(:up_to_commit_with_containing_revision) { 5 }
+      let(:up_to_commit_containing_revision) { 5 }
       let(:oldest) { new_attempt }
       let(:oldest2) { next_attempt(oldest) }
       let(:oldest3) { next_attempt(oldest2) }
       let(:newest) { next_attempt(oldest3) }
 
       before do
+        @persistence.commit oldest
+        @persistence.commit oldest2
+        @persistence.commit oldest3
+        @persistence.commit newest
 
+        @committed = @persistence.get_from(:stream_id => stream_id,
+                                           :min_revision => load_from_commit_containing_revision,
+                                           :max_revision => up_to_commit_containing_revision).to_a
       end
+
+      it('starts from the commit which contains the minimum stream revision specified') { @committed.first.commit_id.should == oldest2.commit_id }
+      it('reads up to the commit which contains the maximum stream revision specified') { @committed.last.commit_id.should == oldest3.commit_id }
     end
-    
+
+    context 'when committing a stream with the same revision' do
+      let(:persistence1) { factory.build }
+      let(:persistence2) { factory.build }
+      let(:attempt1) { new_attempt }
+      let(:attempt2) { new_attempt }
+
+      before do
+        persistence1.init
+        persistence2.init
+
+        persistence1.commit attempt1
+
+        begin
+          persistence2.commit attempt2
+        rescue Exception => e
+          @caught = e
+        end
+      end
+
+      it('raises a ConcurrencyError') { @caught.should be_an(EventStore::ConcurrencyError) }
+    end
+
+    context 'when committing a stream with the same sequence' do
+      let(:persistence1) { factory.build }
+      let(:persistence2) { factory.build }
+      let(:attempt1) { new_attempt }
+      let(:attempt2) { new_attempt }
+
+      before do
+        persistence1.init
+        persistence2.init
+
+        persistence1.commit attempt1
+
+        begin
+          persistence2.commit attempt2
+        rescue Exception => e
+          @caught = e
+        end
+      end
+
+      it('raises a ConcurrencyError') { @caught.should be_an(EventStore::ConcurrencyError) }
+    end
+
+    context 'when attempting to overwrite a committed sequence' do
+      let(:successful_attempt) { new_attempt }
+      let(:failed_attempt) { new_attempt }
+
+      before do
+        @persistence.commit successful_attempt
+
+        begin
+          @persistence.commit failed_attempt
+        rescue Exception => e
+          @caught = e
+        end
+      end
+
+      # POSSIBLE ERROR:
+      it('raises a ConcurrencyError') { @caught.should be_an(EventStore::ConcurrencyError) }
+    end
+
+    context 'when attempting to persist a commit twice' do
+      let(:attempt) { new_attempt }
+
+      before do
+        @persistence.commit attempt
+
+        begin
+          @persistence.commit attempt
+        rescue Exception => e
+          @caught = e
+        end
+      end
+
+      it('raises a DuplicateCommitError') { @caught.should be_an(EventStore::DuplicateCommitError) }
+    end
+
     def new_attempt(options = {})
       defaults = { :stream_id => stream_id,
                    :stream_revision => 2,
@@ -85,150 +176,22 @@ describe ::EventStore do
                              :events => [ EventStore::EventMessage.new(:some_property => 'Another test'),
                                           EventStore::EventMessage.new(:some_property => 'Another test2') ])
     end
+
+    context 'when a commit has been marked as dispatched' do
+      let(:attempt) { new_attempt }
+
+      before do
+        @persistence.commit attempt
+        @persistence.mark_commit_as_dispatched attempt
+      end
+
+      it('is no longer found in the set of undispatched commits') {
+        @persistence.get_undispatched_commits.detect { |c| c.commit_id == attempt.commit_id }.should be_nil }
+    end
   end
 end
 
 __END__
-
-[Subject("Persistence")]
-	public class when_reading_from_a_given_revision : using_the_persistence_engine
-	{
-		const int LoadFromCommitContainingRevision = 3;
-		const int UpToCommitWithContainingRevision = 5;
-		static readonly Commit oldest = streamId.BuildAttempt(); // 2 events, revision 1-2
-		static readonly Commit oldest2 = oldest.BuildNextAttempt(); // 2 events, revision 3-4
-		static readonly Commit oldest3 = oldest2.BuildNextAttempt(); // 2 events, revision 5-6
-		static readonly Commit newest = oldest3.BuildNextAttempt(); // 2 events, revision 7-8
-		static Commit[] committed;
-
-		Establish context = () =>
-		{
-			persistence.Commit(oldest);
-			persistence.Commit(oldest2);
-			persistence.Commit(oldest3);
-			persistence.Commit(newest);
-		};
-
-		Because of = () =>
-			committed = persistence.GetFrom(streamId, LoadFromCommitContainingRevision, UpToCommitWithContainingRevision).ToArray();
-
-		It should_start_from_the_commit_which_contains_the_min_stream_revision_specified = () =>
-			committed.First().CommitId.ShouldEqual(oldest2.CommitId); // contains revision 3
-
-		It should_read_up_to_the_commit_which_contains_the_max_stream_revision_specified = () =>
-			committed.Last().CommitId.ShouldEqual(oldest3.CommitId); // contains revision 5
-	}
-
-namespace EventStore.Persistence.AcceptanceTests
-{
-	using System;
-	using System.Linq;
-	using Machine.Specifications;
-	using Persistence;
-
-  public abstract class using_the_persistence_engine
-	{
-		protected static readonly IPersistenceFactory Factory = new PersistenceFactoryScanner().GetFactory();
-		protected static Guid streamId = Guid.NewGuid();
-		protected static IPersistStreams persistence;
-
-		Establish context = () =>
-		{
-			persistence = Factory.Build();
-			persistence.Initialize();
-		};
-
-		Cleanup everything = () =>
-		{
-			persistence.Dispose();
-			persistence = null;
-
-			streamId = Guid.NewGuid();
-		};
-	}
-
-	[Subject("Persistence")]
-	public class when_committing_a_stream_with_the_same_revision : using_the_persistence_engine
-	{
-		static readonly IPersistStreams persistence1 = Factory.Build();
-		static readonly IPersistStreams persistence2 = Factory.Build();
-		static readonly Commit attempt1 = streamId.BuildAttempt();
-		static readonly Commit attempt2 = streamId.BuildAttempt();
-		static Exception thrown;
-
-		Establish context = () =>
-			persistence1.Commit(attempt1);
-
-		Because of = () =>
-			thrown = Catch.Exception(() => persistence2.Commit(attempt2));
-
-		It should_throw_a_ConcurrencyException = () =>
-			thrown.ShouldBeOfType<ConcurrencyException>();
-
-		Cleanup cleanup = () =>
-		{
-			persistence1.Dispose();
-			persistence2.Dispose();
-		};
-	}
-
-	[Subject("Persistence")]
-	public class when_committing_a_stream_with_the_same_sequence : using_the_persistence_engine
-	{
-		static readonly IPersistStreams persistence1 = Factory.Build();
-		static readonly IPersistStreams persistence2 = Factory.Build();
-		static readonly Commit attempt1 = streamId.BuildAttempt();
-		static readonly Commit attempt2 = streamId.BuildAttempt();
-		static Exception thrown;
-
-		Establish context = () =>
-			persistence1.Commit(attempt1);
-
-		Because of = () =>
-			thrown = Catch.Exception(() => persistence2.Commit(attempt2));
-
-		It should_throw_a_ConcurrencyException = () =>
-			thrown.ShouldBeOfType<ConcurrencyException>();
-
-		Cleanup cleanup = () =>
-		{
-			persistence1.Dispose();
-			persistence2.Dispose();
-		};
-	}
-
-	[Subject("Persistence")]
-	public class when_attempting_to_overwrite_a_committed_sequence : using_the_persistence_engine
-	{
-		static readonly Commit successfulAttempt = streamId.BuildAttempt();
-		static readonly Commit failedAttempt = streamId.BuildAttempt();
-		static Exception thrown;
-
-		Establish context = () =>
-			persistence.Commit(successfulAttempt);
-
-		Because of = () =>
-			thrown = Catch.Exception(() => persistence.Commit(failedAttempt));
-
-		It should_throw_a_ConcurrencyException = () =>
-			thrown.ShouldBeOfType<ConcurrencyException>();
-	}
-
-	[Subject("Persistence")]
-	public class when_attempting_to_persist_a_commit_twice : using_the_persistence_engine
-	{
-		static readonly Commit attemptTwice = streamId.BuildAttempt();
-		static Exception thrown;
-
-		Establish context = () =>
-			persistence.Commit(attemptTwice);
-
-		Because of = () =>
-			thrown = Catch.Exception(() => persistence.Commit(attemptTwice));
-
-		It should_throw_a_DuplicateCommitException = () =>
-			thrown.ShouldBeOfType<DuplicateCommitException>();
-	}
 
 	[Subject("Persistence")]
 	public class when_a_commit_has_been_marked_as_dispatched : using_the_persistence_engine
@@ -341,6 +304,31 @@ namespace EventStore.Persistence.AcceptanceTests
 
 		It should_return_all_commits_on_or_after_the_point_in_time_specified = () =>
 			committed.Length.ShouldEqual(4);
+	}
+	using System;
+	using System.Linq;
+	using Machine.Specifications;
+	using Persistence;
+
+  public abstract class using_the_persistence_engine
+	{
+		protected static readonly IPersistenceFactory Factory = new PersistenceFactoryScanner().GetFactory();
+		protected static Guid streamId = Guid.NewGuid();
+		protected static IPersistStreams persistence;
+
+		Establish context = () =>
+		{
+			persistence = Factory.Build();
+			persistence.Initialize();
+		};
+
+		Cleanup everything = () =>
+		{
+			persistence.Dispose();
+			persistence = null;
+
+			streamId = Guid.NewGuid();
+		};
 	}
 }
 
