@@ -2,9 +2,9 @@ module EventStore
   module Persistence
     module Mongodb
       class MongoPersistenceEngine
-        def initialize(store, serializer)
+        def initialize(store, serializer = nil)
           @store = store
-          @serializer = serializer
+#          @serializer = serializer
         end
 
         def add_snapshot(snapshot)
@@ -12,6 +12,7 @@ module EventStore
 
           begin
             mongo_snapshot = snapshot.to_hash
+
             persisted_snapshots.insert mongo_snapshot
             persisted_stream_heads.update({ :_id => snapshot.stream_id },
                                           { :snapshot_revision => snapshot.stream_revision })
@@ -42,7 +43,7 @@ module EventStore
         def get_from(options)
           begin
             if options.has_key? :timestamp
-              query = { :commit_timestamp => { '$gte' => options[:timestamp] } }
+              query = { :commit_timestamp => { '$gte' => options[:timestamp].to_f } }
               order = [ :commit_timestamp, Mongo::ASCENDING ]
             else
               query = { '_id.stream_id' => options[:stream_id],
@@ -61,14 +62,14 @@ module EventStore
         def get_snapshot(stream_id, max_revision)
           query = { :_id => { '$gt' => { :stream_id => stream_id,
                                          :stream_revision => nil },
-                              '$lt' => { :stream_id => stream_id,
+                              '$lte' => { :stream_id => stream_id,
                                          :stream_revision => max_revision } } }
 
           persisted_snapshots.find(query)
-                             .sort({ :_id => -1 })
+                             .sort([ :_id, Mongo::DESCENDING ])
                              .limit(1)
                              .to_a
-                             .map { |hash| hash_to_mongo_commit hash }
+                             .map { |hash| hash_to_mongo_snapshot hash }
                              .first
         end
 
@@ -111,6 +112,10 @@ module EventStore
           hash[:payload] = hash[:payload].map { |p| ::ActiveSupport::HashWithIndifferentAccess.new p }
 
           EventStore::Commit.from_hash hash
+        end
+
+        def hash_to_mongo_snapshot(hash)
+          EventStore::Snapshot.new hash['_id']['stream_id'], hash['_id']['stream_revision'], YAML::load(hash['payload'])
         end
 
         def hash_to_mongo_stream_head(hash)

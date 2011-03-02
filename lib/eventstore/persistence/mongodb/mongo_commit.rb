@@ -38,7 +38,7 @@ module EventStore
             :friendly_commit_timestamp => commit_timestamp.utc.strftime('%d-%b-%Y %H:%M:%S.%N'),
             :dispatched => dispatched || false,
             :headers => headers,
-            :payload => events.map { |e| EventStore::Serialization::Mongodb::MongoSerializer.serialize e }
+            :payload => events.map { |e| e.to_yaml }
           }
         end
 

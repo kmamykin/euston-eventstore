@@ -6,8 +6,8 @@ module EventStore
 
         def to_hash
           {
-            :id => { :stream_id => stream_id, :stream_revision => stream_revision },
-            :payload => EventStore::Serialization::Mongodb::MongoSerializer.serialize(payload)
+            :_id => { :stream_id => stream_id, :stream_revision => stream_revision },
+            :payload => payload.to_yaml
           }
         end
       end
