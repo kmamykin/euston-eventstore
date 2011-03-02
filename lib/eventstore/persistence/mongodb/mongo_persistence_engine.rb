@@ -2,9 +2,8 @@ module EventStore
   module Persistence
     module Mongodb
       class MongoPersistenceEngine
-        def initialize(store, serializer = nil)
+        def initialize(store)
           @store = store
-#          @serializer = serializer
         end
 
         def add_snapshot(snapshot)

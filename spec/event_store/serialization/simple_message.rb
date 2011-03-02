@@ -6,13 +6,5 @@ module EventStore
 
     attr_accessor :id, :created, :value, :count
     attr_reader :contents
-
-#    def to_hash
-#      { :id => id,
-#        :created => created,
-#        :value => value,
-#        :count => count,
-#        :contents => contents }
-#    end
   end
 end

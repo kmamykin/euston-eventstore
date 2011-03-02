@@ -5,8 +5,7 @@ module EventStore
         def self.build
           config = Mongodb::Config.instance
           connection = Mongo::Connection.new(config.host, config.port, config.options)
-          
-#          MongoPersistenceEngine.new connection.db(config.database), EventStore::Serialization::Mongodb::MongoSerializer.new
+
           MongoPersistenceEngine.new connection.db(config.database)
         end
       end
