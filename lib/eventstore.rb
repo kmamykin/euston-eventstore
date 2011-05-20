@@ -23,7 +23,6 @@ require 'eventstore/persistence/mongodb/mongo_persistence_engine'
 require 'eventstore/persistence/mongodb/mongo_persistence_factory'
 require 'eventstore/persistence/mongodb/mongo_snapshot'
 require 'eventstore/persistence/mongodb/mongo_stream_head'
-require 'eventstore/serialization/mongodb/mongo_serializer'
 
 module EventStore
   FIXNUM_MAX = (2**(0.size * 8 -2) -1)
