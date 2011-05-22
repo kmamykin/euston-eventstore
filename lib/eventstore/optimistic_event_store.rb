@@ -51,8 +51,8 @@ module EventStore
 
     def persist_and_dispatch(attempt)
       @persistence.commit attempt
-			@tracker.track attempt
-			@dispatcher.dispatch attempt
+      @tracker.track attempt
+      @dispatcher.dispatch attempt
     end
 
     def throw_on_duplicate_or_concurrent_writes(attempt)
