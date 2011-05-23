@@ -1,9 +1,7 @@
 module EventStore
   class OptimisticEventStore
-    def initialize(persistence, dispatcher)
+    def initialize(persistence)
       @persistence = persistence
-      @dispatcher = dispatcher
-      @tracker = Persistence::CommitTracker.new
     end
 
     def add_snapshot(snapshot)
@@ -13,8 +11,7 @@ module EventStore
     def commit(attempt)
       return unless Commit.valid?(attempt) && !Commit.empty?(attempt)
 
-      throw_on_duplicate_or_concurrent_writes attempt
-      persist_and_dispatch attempt
+      @persistence.commit attempt
     end
 
     def create_stream(stream_id)
@@ -23,48 +20,34 @@ module EventStore
     end
     
     def get_from(stream_id, min_revision, max_revision)
-      @persistence.get_from(stream_id, min_revision, max_revision).to_enum.map do |commit|
-        @tracker.track commit
-        commit
-      end
+      @persistence.get_from(stream_id, min_revision, max_revision).to_enum
     end
 
     def get_snapshot(stream_id, max_revision)
-      @persistence.get_snapshot stream_id, max_revision
+      @persistence.get_snapshot stream_id, validate_max_revision(max_revision)
     end
 
-    def open_stream(stream_id, min_revision, max_revision)
-      stream = OptimisticEventStream.new(:stream_id => stream_id,
-                                         :persistence => self,
-                                         :min_revision => min_revision,
-                                         :max_revision => validate_max_revision(max_revision))
-      stream.commit_sequence == 0 ? nil : stream
+    def get_streams_to_snapshot(max_threshold)
+      @persistence.get_streams_to_snapshot maxhreshold
     end
+    
+    def open_stream(options)
+      options = { :stream_id => nil, 
+                  :min_revision => nil, 
+                  :max_revision => nil, 
+                  :snapshot => nil }.merge(options)
 
-    def open_stream_from_snapshot(snapshot, max_revision)
-      OptimisticEventStream.new(:snapshot => snapshot,
-                                :persistence => self,
-                                :max_revision => validate_max_revision(max_revision))
-    end
+      options = options.merge(:max_revision => validate_max_revision(options[:max_revision]),
+                              :persistence => self)
 
-    protected
-
-    def persist_and_dispatch(attempt)
-      @persistence.commit attempt
-      @tracker.track attempt
-      @dispatcher.dispatch attempt
-    end
-
-    def throw_on_duplicate_or_concurrent_writes(attempt)
-      raise DuplicateCommitError if @tracker.contains? attempt
-
-      head = @tracker.get_stream_head attempt.stream_id
-      return if head.nil?
+      if options[:snapshot].nil?
+        options.delete :snapshot
+      else
+        options.delete :stream_id
+        options.delete :min_revision
+      end
       
-      raise ConcurrencyError if head.commit_sequence >= attempt.commit_sequence
-      raise ConcurrencyError if head.stream_revision >= attempt.stream_revision
-      raise StorageError if head.commit_sequence < attempt.commit_sequence - 1
-      raise StorageError if head.stream_revision < attempt.stream_revision - attempt.events.length
+      OptimisticEventStream.new options
     end
 
     private

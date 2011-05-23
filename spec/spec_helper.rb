@@ -18,6 +18,7 @@ RSpec.configure do |config|
   
   config.before :each do
     connection = Mongo::Connection.new(mongo_config.host, mongo_config.port, mongo_config.options)
+    connection.db(mongo_config.database).drop_collection :snapshot
     connection.db(mongo_config.database).collections.select {|c| c.name !~ /system/ }.each(&:drop)
   end
 end

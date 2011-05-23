@@ -85,35 +85,27 @@ describe ::EventStore do
     end
 
     context 'when adding a null event message' do
-      before do
-        begin
-          stream << nil
-        rescue Exception => e
-          @exception = e
-        end
+      before do 
+        stream << nil
       end
 
-      it 'raises an ArgumentError' do
-        @exception.should be_an(ArgumentError)
+      it 'is ignored' do
+        stream.uncommitted_events.should be_empty
       end
     end
 
     context 'when adding an unpopulated event message' do
-      before do
-        begin
-          stream << EventStore::EventMessage.new
-        rescue Exception => e
-          @exception = e
-        end
+      before do 
+        stream << EventStore::EventMessage.new(nil)
       end
 
-      it 'raises an ArgumentError' do
-        @exception.should be_an(ArgumentError)
+      it 'is ignored' do 
+        stream.uncommitted_events.should be_empty
       end
     end
 
     context 'when adding a fully populated event message' do
-      before do
+      before do 
         stream << EventStore::EventMessage.new('populated')
       end
 
@@ -124,7 +116,8 @@ describe ::EventStore do
 
     context 'when adding multiple populated event messages' do
       before do
-        stream << [ EventStore::EventMessage.new('populated'), EventStore::EventMessage.new('also populated') ]
+        stream << EventStore::EventMessage.new('populated')
+        stream << EventStore::EventMessage.new('also populated')
       end
 
       it 'adds all the events provided to the set of uncommitted events' do
@@ -136,7 +129,7 @@ describe ::EventStore do
       let(:my_event) { 'some event data' }
 
       before do
-        stream << my_event
+        stream << EventStore::EventMessage.new(my_event)
       end
 
       it 'adds the uncommitted event to the set of uncommitted events' do
@@ -162,7 +155,7 @@ describe ::EventStore do
     context 'when committing an empty changeset' do
       before do
         persistence.stub(:commit) { @persisted = true }
-        stream.commit_changes uuid.generate, nil
+        stream.commit_changes uuid.generate
       end
 
       it 'does not call the underlying infrastructure' do
@@ -181,12 +174,13 @@ describe ::EventStore do
     context 'when committing any uncommitted changes' do
       let(:commit_id) { uuid.generate }
       let(:uncommitted) { EventStore::EventMessage.new '' }
-      let(:headers) { Hash.new }
+      let(:headers) { { :key => :value } }
 
       before do
         persistence.stub(:commit) { |c| @constructed = c }
         stream << uncommitted
-        stream.commit_changes commit_id, headers
+        headers.each { |key, value| stream.uncommitted_headers[key] = value }        
+        stream.commit_changes commit_id
       end
 
       it 'provides a commit to the underlying infrastructure' do
@@ -214,7 +208,10 @@ describe ::EventStore do
       end
 
       it 'builds the commit with the headers provided' do
-        @constructed.headers.should == headers
+        @constructed.headers.each do |key, value|
+          headers[key].should == value
+        end
+        @constructed.headers.keys.length.should == headers.keys.length
       end
 
     	it 'builds the commit containing all uncommitted events' do
@@ -240,6 +237,34 @@ describe ::EventStore do
     	it 'clears the uncommitted events' do
     		stream.uncommitted_events.should have(0).items
   		end
+
+    	it 'clears the uncommitted headers' do
+    		stream.uncommitted_headers.should have(0).items
+  		end
+    end
+
+    context 'when committing with an identifier that was previously read' do
+    	let(:committed) { [ build_commit_stub(stream_id, 1, 1, 1) ] }
+      let(:duplicate_commit_id) { committed.first.commit_id }
+      
+      before do
+        persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { committed }
+
+        @stream = EventStore::OptimisticEventStream.new(:stream_id => stream_id,
+                                                        :persistence => persistence,
+                                                        :min_revision => 0,
+                                                        :max_revision => EventStore::FIXNUM_MAX)
+
+        begin
+          @stream.commit_changes duplicate_commit_id
+        rescue Exception => e
+          @thrown = e
+        end
+      end
+
+    	it 'throws a DuplicateCommitError' do
+    		@thrown.should be_a(EventStore::DuplicateCommitError)
+  		end
     end
 
     context 'when committing after another thread or process has moved the stream head' do
@@ -251,7 +276,10 @@ describe ::EventStore do
       before do
         persistence.stub(:commit) { raise EventStore::ConcurrencyError.new }
     		persistence.stub(:get_from).with(stream_id, stream_revision, EventStore::FIXNUM_MAX) { committed }
-    		persistence.stub(:get_from).with(stream_id, stream_revision + 1, EventStore::FIXNUM_MAX) { @queried_for_new_commits = true; discovered_on_commit }
+    		persistence.stub(:get_from).with(stream_id, stream_revision + 1, EventStore::FIXNUM_MAX) do 
+    		  @queried_for_new_commits = true
+          discovered_on_commit
+        end
 
     		@stream = EventStore::OptimisticEventStream.new(:stream_id => stream_id,
                                                         :persistence => persistence,
@@ -260,7 +288,7 @@ describe ::EventStore do
     		@stream << uncommitted
 
         begin
-          @stream.commit_changes uuid.generate, nil
+          @stream.commit_changes uuid.generate
         rescue Exception => e
           @thrown = e
         end

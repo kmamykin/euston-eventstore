@@ -35,7 +35,7 @@ describe ::EventStore do
       it('correctly persists the commit sequence') { @persisted.commit_sequence.should == attempt.commit_sequence }
 
 		  # persistence engines have varying levels of precision with respect to time.
-		  it('correctly persists the commit timestamp') { (@persisted.commit_timestamp - now).should be <= 1 }
+		  it('correctly persists the commit timestamp') { (@persisted.commit_timestamp - now.to_f).should be <= 1 }
 
       it('correctly persists the headers') { @persisted.headers.should have(attempt.headers.length).items }
       it('correctly persists the events') { @persisted.events.should have(attempt.events.length).items }
@@ -51,7 +51,7 @@ describe ::EventStore do
         @persistence.get_streams_to_snapshot(1).detect { |x| x.stream_id == stream_id }.should_not be_nil }
     end
 
-    context 'when a commit is successfully persisted' do
+    context 'when reading from a given revision' do
       let(:load_from_commit_containing_revision) { 3 }
       let(:up_to_commit_containing_revision) { 5 }
       let(:oldest) { new_attempt }
@@ -68,6 +68,7 @@ describe ::EventStore do
         @committed = @persistence.get_from(:stream_id => stream_id,
                                            :min_revision => load_from_commit_containing_revision,
                                            :max_revision => up_to_commit_containing_revision).to_a
+
       end
 
       it('starts from the commit which contains the minimum stream revision specified') { @committed.first.commit_id.should == oldest2.commit_id }
@@ -164,10 +165,13 @@ describe ::EventStore do
     end
 
     context 'when saving a snapshot' do
-      let(:snapshot) { EventStore::Snapshot.new stream_id, 1, 'snapshot' }
+      let(:snapshot) { EventStore::Snapshot.new stream_id, 1, { :key => :value } }
 
       before do
         @persistence.commit new_attempt
+
+        sleep 0.25
+
         @added = @persistence.add_snapshot snapshot
       end
 
@@ -176,9 +180,9 @@ describe ::EventStore do
     end
 
     context 'when retrieving a snapshot' do
-      let(:too_far_back) { EventStore::Snapshot.new stream_id, 1, '' }
-      let(:correct) { EventStore::Snapshot.new stream_id, 3, 'snapshot' }
-      let(:too_far_forward) { EventStore::Snapshot.new stream_id, 5, '' }
+      let(:too_far_back) { EventStore::Snapshot.new stream_id, 1, {} }
+      let(:correct) { EventStore::Snapshot.new stream_id, 3, { 'key' => 'value' } }
+      let(:too_far_forward) { EventStore::Snapshot.new stream_id, 5, {} }
       let(:commit1) { new_attempt }
       let(:commit2) { next_attempt commit1 }
       let(:commit3) { next_attempt commit2 }
@@ -187,6 +191,8 @@ describe ::EventStore do
         @persistence.commit commit1
         @persistence.commit commit2
         @persistence.commit commit3
+
+        sleep 0.25
 
         @persistence.add_snapshot too_far_back
         @persistence.add_snapshot correct
@@ -203,12 +209,14 @@ describe ::EventStore do
       let(:oldest) { new_attempt }
       let(:oldest2) { next_attempt oldest }
       let(:newest) { next_attempt oldest2 }
-      let(:snapshot) { EventStore::Snapshot.new stream_id, newest.stream_revision, 'snapshot' }
+      let(:snapshot) { EventStore::Snapshot.new stream_id, newest.stream_revision, { :key => :value } }
 
       before do
         @persistence.commit oldest
         @persistence.commit oldest2
         @persistence.commit newest
+
+        sleep 0.25
 
         @persistence.add_snapshot snapshot
       end
@@ -216,6 +224,35 @@ describe ::EventStore do
       it('no longer finds the stream in the set of streams to be snapshot') {
         @persistence.get_streams_to_snapshot(1).detect { |x| x.stream_id == stream_id }.should be_nil }
     end
+
+# Timing issues with this one?
+# 
+#    context 'when adding a commit after a snapshot' do
+#      let(:within_threshold) { 2 }
+#      let(:over_threshold) { 3 }
+#      let(:snapshot_data) { { :key => :value } }
+#      let(:oldest) { new_attempt }
+#      let(:oldest2) { next_attempt oldest }
+#      let(:newest) { next_attempt oldest2 }
+
+#      before do
+#        @persistence.commit oldest
+#        @persistence.commit oldest2
+
+#        sleep 0.25
+
+#        @persistence.add_snapshot EventStore::Snapshot.new(stream_id, oldest2.stream_revision, snapshot_data)
+#        @persistence.commit newest
+#      end
+
+#      it 'finds the stream in the set of streams to be snapshot when within the threshold' do
+#        @persistence.get_streams_to_snapshot(within_threshold).detect { |x| x.stream_id == stream_id }.should_not be_nil
+#      end
+
+#      it 'does not find the stream in the set of stream to be snapshot when over the threshold' do
+#        @persistence.get_streams_to_snapshot(over_threshold).detect { |x| x.stream_id == stream_id }.should be_nil
+#      end
+#    end
 
     context 'when reading all commits from a particular point in time' do
       let(:now) { Time.now.utc + (60 * 60 * 24 * 7 * 52) }

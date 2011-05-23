@@ -4,6 +4,12 @@ module EventStore
       module MongoStreamHead
         extend ::ActiveSupport::Concern
 
+        class << self
+          def from_hash(hash)
+            EventStore::Persistence::StreamHead.new hash['_id'], hash['head_revision'], hash['snapshot_revision']            
+          end          
+        end
+
         def to_hash
           {
             :stream_id => @stream_id,
