@@ -5,9 +5,10 @@ module EventStore
         def initialize(store)
           @store = store
           
-          store.create_collection :commits    # :safe = true
-          store.create_collection :snapshot   # :safe = false
-          store.create_collection :streams    # :safe = false
+          collection_names = store.collection_names
+          store.create_collection 'commits'  unless collection_names.include? 'commits'    # :safe = true
+          store.create_collection 'snapshot' unless collection_names.include? 'snapshot'   # :safe = false
+          store.create_collection 'streams'  unless collection_names.include? 'streams'    # :safe = false
         end
 
         def add_snapshot(snapshot)
@@ -66,31 +67,29 @@ module EventStore
 
         def get_snapshot(stream_id, max_revision)
           try_mongo do
-            persisted_snapshots.find({ '_id' => {  '$gt' => { 'stream_id' => stream_id, 'stream_revision' => nil },
-                                                  '$lte' => { 'stream_id' => stream_id, 'stream_revision' => max_revision } } })
-                               .sort([ '_id', Mongo::DESCENDING ])
-                               .limit(1)
-                               .to_a
-                               .map { |hash| MongoSnapshot::from_hash hash }
-                               .first
+            query = { '_id' => {  '$gt' => { 'stream_id' => stream_id, 'stream_revision' => nil },
+                                 '$lte' => { 'stream_id' => stream_id, 'stream_revision' => max_revision } } }
+            order = [ '_id', Mongo::DESCENDING ]
+
+            persisted_snapshots.find(query).sort(order).limit(1).to_a.map { |hash| MongoSnapshot::from_hash hash }.first
           end
         end
 
         def get_streams_to_snapshot(max_threshold)
           try_mongo do
-            persisted_stream_heads.find({ 'unsnapshotted' => { '$gte' => max_threshold } })
-                                  .sort([ 'unsnapshotted', Mongo::DESCENDING ])
-                                  .to_a
-                                  .map { |hash| MongoStreamHead.from_hash hash }                                
+            query = { 'unsnapshotted' => { '$gte' => max_threshold } }
+            order = [ 'unsnapshotted', Mongo::DESCENDING ]
+
+            persisted_stream_heads.find(query).sort(order).to_a.map { |hash| MongoStreamHead.from_hash hash }                                
           end
         end
 
         def get_undispatched_commits
           try_mongo do
-            persisted_commits.find({ 'dispatched' => false })
-                             .sort([ 'commit_timestamp', Mongo::ASCENDING ])
-                             .to_a
-                             .map { |hash| MongoCommit.from_hash hash }
+            query = { 'dispatched' => false }
+            order = [ 'commit_timestamp', Mongo::ASCENDING ]
+
+            persisted_commits.find(query).sort(order).to_a.map { |hash| MongoCommit.from_hash hash }
           end
         end
 
@@ -117,15 +116,15 @@ module EventStore
         private
 
         def persisted_commits
-          @store.collection :commits
+          @store.collection 'commits'
         end
 
         def persisted_snapshots
-          @store.collection :snapshots
+          @store.collection 'snapshots'
         end
 
         def persisted_stream_heads
-          @store.collection :streams
+          @store.collection 'streams'
         end
         
         def try_mongo(&block)
@@ -133,7 +132,7 @@ module EventStore
             yield block
           rescue Mongo::ConnectionError => e
             raise EventStore::StorageUnavailableError, e.to_s, e.backtrace
-          rescue Mongo::MongoRubyError => e
+          rescue Mongo::MongoDBError => e
             raise EventStore::StorageError, e.to_s, e.backtrace
           end
         end

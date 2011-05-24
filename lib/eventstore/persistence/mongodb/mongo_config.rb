@@ -11,7 +11,7 @@ module EventStore
         end
 
         def port
-          @port ||= Mongo::Connection::DEFAULT_PORT
+          @port ||= 27017
         end
 
         def options

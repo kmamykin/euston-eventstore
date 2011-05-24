@@ -17,16 +17,18 @@ Gem::Specification.new do |s|
   s.require_paths = ['lib']
 
   s.add_dependency 'activesupport', '~> 3.0'
-  s.add_dependency 'bson_ext',      '~> 1.1'
-  s.add_dependency 'rake',          '~> 0.8'
+  s.add_dependency 'bson_ext',      '~> 1.1'    unless RUBY_PLATFORM.to_s == 'java'
   s.add_dependency 'jeweler',       '~> 1.4'
+  s.add_dependency 'jmongo'                     if RUBY_PLATFORM.to_s == 'java'
+  s.add_dependency 'jrjackson'                  if RUBY_PLATFORM.to_s == 'java'
   s.add_dependency 'json',          '~> 1.5.1'
-  s.add_dependency 'mongo',         '~> 1.3.1'
+  s.add_dependency 'mongo',         '~> 1.3.1'  unless RUBY_PLATFORM.to_s == 'java'
+  s.add_dependency 'rake',          '~> 0.9'
   s.add_dependency 'uuid',          '~> 2.3'
 
   s.add_development_dependency 'awesome_print'
   s.add_development_dependency 'fuubar'
-  s.add_development_dependency 'rspec-core',         '~> 2.4'
-  s.add_development_dependency 'rspec-expectations', '~> 2.4'
-  s.add_development_dependency 'rspec-mocks',        '~> 2.4'
+  s.add_development_dependency 'rspec-core',         '~> 2.6'
+  s.add_development_dependency 'rspec-expectations', '~> 2.6'
+  s.add_development_dependency 'rspec-mocks',        '~> 2.6'
 end

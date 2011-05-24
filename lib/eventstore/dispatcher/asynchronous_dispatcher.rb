@@ -4,7 +4,7 @@ module EventStore
       def initialize(bus, persistence, &block)
         @bus = bus
         @persistence = persistence
-        @handle_exception = block_given? ? block : ->() {}
+        @handle_exception = block_given? ? block : Proc.new {}
 
         start
       end

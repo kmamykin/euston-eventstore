@@ -10,14 +10,14 @@ module EventStore
             
             id = hash['_id']
             
-            EventStore::Snapshot.new id['stream_id'], id['stream_revision'], ::JSON.parse(hash['payload'])
+            EventStore::Snapshot.new id['stream_id'], id['stream_revision'], ::Json.parse(hash['payload'])
           end
         end
 
         def to_hash
           {
             :_id => { :stream_id => stream_id, :stream_revision => stream_revision },
-            :payload => ::JSON.generate(payload)
+            :payload => ::Json.generate(payload)
           }
         end
       end

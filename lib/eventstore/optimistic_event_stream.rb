@@ -1,6 +1,6 @@
 module EventStore
   class OptimisticEventStream
-    def initialize(options)
+    def initialize(options)  
       @persistence = options[:persistence]
       @committed_events = []
       @uncommitted_events = []

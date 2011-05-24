@@ -20,7 +20,9 @@ module EventStore
     end
     
     def get_from(stream_id, min_revision, max_revision)
-      @persistence.get_from(stream_id, min_revision, max_revision).to_enum
+      @persistence.get_from(:stream_id => stream_id, 
+                            :min_revision => min_revision, 
+                            :max_revision => max_revision).to_enum
     end
 
     def get_snapshot(stream_id, max_revision)
@@ -28,7 +30,7 @@ module EventStore
     end
 
     def get_streams_to_snapshot(max_threshold)
-      @persistence.get_streams_to_snapshot maxhreshold
+      @persistence.get_streams_to_snapshot max_threshold
     end
     
     def open_stream(options)

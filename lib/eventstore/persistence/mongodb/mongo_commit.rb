@@ -15,7 +15,7 @@ module EventStore
             
             id = hash['_id']
             events = hash['events'].map { |e| EventStore::Persistence::Mongodb::MongoEventMessage.from_hash e['payload'] }
-            stream_revision = hash['events'].last['stream_revision']
+            stream_revision = hash['events'].to_a.last['stream_revision']
             
             EventStore::Commit.new :stream_id => id['stream_id'],
                                    :stream_revision => stream_revision,

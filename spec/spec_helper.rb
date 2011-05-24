@@ -1,6 +1,12 @@
 require 'ap'
 require 'eventstore'
-require 'mongo'
+
+if RUBY_PLATFORM.to_s == 'java'
+  require 'jmongo'
+else
+  require 'mongo'
+end
+
 require 'uuid'
 
 require 'rspec/core'
@@ -18,7 +24,7 @@ RSpec.configure do |config|
   
   config.before :each do
     connection = Mongo::Connection.new(mongo_config.host, mongo_config.port, mongo_config.options)
-    connection.db(mongo_config.database).drop_collection :snapshot
-    connection.db(mongo_config.database).collections.select {|c| c.name !~ /system/ }.each(&:drop)
+    db = connection.db(mongo_config.database)
+    db.collections.select { |c| c.name !~ /system/ }.each { |c| db.drop_collection c.name }
   end
 end
