@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'jrjackson'                  if RUBY_PLATFORM.to_s == 'java'
   s.add_dependency 'json',          '~> 1.5.1'
   s.add_dependency 'mongo',         '~> 1.3.1'  unless RUBY_PLATFORM.to_s == 'java'
-  s.add_dependency 'rake',          '~> 0.9'
+  s.add_dependency 'rake',          '~> 0.8'
   s.add_dependency 'uuid',          '~> 2.3'
 
   s.add_development_dependency 'awesome_print'
