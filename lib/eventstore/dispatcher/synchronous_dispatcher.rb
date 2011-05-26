@@ -1,22 +1,17 @@
 module EventStore
   module Dispatcher
     class SynchronousDispatcher
-      def initialize(bus, persistence)
-        @bus = bus
+      def initialize persistence, &block
         @persistence = persistence
-
-        start
+        @dispatch = block
       end
 
-      def dispatch(commit)
-        @bus.publish commit
+      def dispatch commit
+        @dispatch.call commit
         @persistence.mark_commit_as_dispatched commit
       end
 
-      private
-
-      def start
-        @persistence.init
+      def lookup
         @persistence.get_undispatched_commits.each { |commit| dispatch commit }
       end
     end
