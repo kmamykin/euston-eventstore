@@ -41,7 +41,6 @@ module EventStore
             :commit_timestamp => commit_timestamp.to_f,
             :dispatched => dispatched || false,
             :events => events.map { |e| e.to_hash },
-            :friendly_commit_timestamp => commit_timestamp.utc.strftime('%d-%b-%Y %H:%M:%S.%N'),
             :headers => headers
           }
         end
