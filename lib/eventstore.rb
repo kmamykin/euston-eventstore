@@ -1,5 +1,5 @@
 require 'json'
-require 'active_support'
+require 'active_support/concern'
 require 'eventstore/commit'
 require 'eventstore/errors'
 require 'eventstore/event_message'
