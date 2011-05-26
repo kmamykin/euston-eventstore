@@ -63,12 +63,6 @@ module HashExt
     self
   end
 
-  def recursive_stringify_symbol_values!
-    stringify_keys!
-    values.select{|v| v.is_a? Hash}.each{|h| h.recursive_stringify_keys!}
-    self
-  end
-
   def recursive_symbolize_keys!
     symbolize_keys!
     values.select{|v| v.is_a? Hash}.each{|h| h.recursive_symbolize_keys!}
