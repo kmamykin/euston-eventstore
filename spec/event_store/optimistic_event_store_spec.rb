@@ -23,7 +23,9 @@ describe ::EventStore do
 
     context 'when opening an empty stream starting at revision zero' do
       before do
-        persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { [] }
+        persistence.stub(:get_from).with({ :stream_id => stream_id, 
+                                           :min_revision => 0, 
+                                           :max_revision => EventStore::FIXNUM_MAX }) { [] }
 
         @stream = store.open_stream :stream_id => stream_id, :min_revision => 0, :max_revision => 0
       end
@@ -41,7 +43,9 @@ describe ::EventStore do
       let(:min_revision) { 1 }
 
       before do
-        persistence.stub(:get_from).with(stream_id, min_revision, EventStore::FIXNUM_MAX) { [] }
+        persistence.stub(:get_from).with({ :stream_id => stream_id, 
+                                           :min_revision => min_revision, 
+                                           :max_revision => EventStore::FIXNUM_MAX }) { [] }
 
         begin
           store.open_stream :stream_id => stream_id, 
@@ -62,7 +66,10 @@ describe ::EventStore do
                                  :commit_sequence => 1) ] }
 
       before do
-        persistence.stub(:get_from).with(stream_id, min_revision, max_revision) { @invoked = true; committed }
+        persistence.stub(:get_from).with({ :stream_id => stream_id, 
+                                           :min_revision => min_revision, 
+                                           :max_revision => max_revision }) { @invoked = true; committed }
+
         @stream = store.open_stream :stream_id => stream_id, 
                                     :min_revision => min_revision, 
                                     :max_revision => max_revision
@@ -78,7 +85,10 @@ describe ::EventStore do
       let(:committed) { [ commit(:stream_revision => min_revision) ] }
 
       before do
-        persistence.stub(:get_from).with(stream_id, min_revision, max_revision) { @invoked = true; committed }
+        persistence.stub(:get_from).with({ :stream_id => stream_id, 
+                                           :min_revision => min_revision, 
+                                           :max_revision => max_revision }) { @invoked = true; committed }
+
         @stream = store.open_stream :stream_id => stream_id, 
                                     :min_revision => min_revision, 
                                     :max_revision => max_revision
@@ -95,7 +105,10 @@ describe ::EventStore do
       let(:committed) { [ commit(:stream_revision => min_revision, :commit_sequence => 0) ] }
 
       before do
-        persistence.stub(:get_from).with(stream_id, min_revision, max_revision) { @invoked = true; committed }
+        persistence.stub(:get_from).with({ :stream_id => stream_id, 
+                                           :min_revision => min_revision, 
+                                           :max_revision => max_revision }) { @invoked = true; committed }
+
         store.open_stream :snapshot => snapshot, 
                           :max_revision => max_revision
       end
@@ -111,7 +124,10 @@ describe ::EventStore do
                                                                          :commit_sequence => head_commit_sequence) ] }
 
       before do
-        persistence.stub(:get_from).with(stream_id, head_stream_revision, EventStore::FIXNUM_MAX) { committed }
+        persistence.stub(:get_from).with({ :stream_id => stream_id, 
+                                           :min_revision => head_stream_revision, 
+                                           :max_revision => EventStore::FIXNUM_MAX }) { committed }
+        
         @stream = store.open_stream :snapshot => snapshot, 
                                     :max_revision => EventStore::FIXNUM_MAX
       end
@@ -126,7 +142,10 @@ describe ::EventStore do
 
     context 'when reading from revision zero' do
       before do
-        persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { @invoked = true; [] }
+        persistence.stub(:get_from).with({ :stream_id => stream_id, 
+                                           :min_revision => 0, 
+                                           :max_revision => EventStore::FIXNUM_MAX }) { @invoked = true; [] }
+
         store.get_from stream_id, 0, EventStore::FIXNUM_MAX
       end
 
@@ -137,7 +156,10 @@ describe ::EventStore do
       let(:committed) { [ commit ] }
 
       before do
-        persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { @invoked = true; committed }
+        persistence.stub(:get_from).with({ :stream_id => stream_id, 
+                                           :min_revision => 0, 
+                                           :max_revision => EventStore::FIXNUM_MAX }) { @invoked = true; committed }
+
         store.open_stream :stream_id => stream_id, 
                           :min_revision => 0, 
                           :max_revision => 0
@@ -151,7 +173,10 @@ describe ::EventStore do
       let(:committed) { [ commit ] }
 
       before do
-        persistence.stub(:get_from).with(stream_id, snapshot.stream_revision, EventStore::FIXNUM_MAX) { @invoked = true; committed }
+        persistence.stub(:get_from).with({ :stream_id => stream_id, 
+                                           :min_revision => snapshot.stream_revision, 
+                                           :max_revision => EventStore::FIXNUM_MAX }) { @invoked = true; committed }
+                                           
         store.open_stream :snapshot => snapshot, 
                           :max_revision => 0, 
       end

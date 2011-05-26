@@ -35,8 +35,8 @@ module EventStore
     
     def open_stream(options)
       options = { :stream_id => nil, 
-                  :min_revision => nil, 
-                  :max_revision => nil, 
+                  :min_revision => 0, 
+                  :max_revision => 0, 
                   :snapshot => nil }.merge(options)
 
       options = options.merge(:max_revision => validate_max_revision(options[:max_revision]),
