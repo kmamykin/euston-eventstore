@@ -15,7 +15,7 @@ module EventStore
         def to_hash
           {
             :headers => headers,
-            :body => body.to_hash
+            :body => body.to_hash.recursive_stringify_symbol_values!
           }
         end
       end

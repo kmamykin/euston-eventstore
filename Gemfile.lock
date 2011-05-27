@@ -1,13 +1,13 @@
 GIT
   remote: https://github.com/guyboertje/jmongo.git
-  revision: 94e07cf92908dea523e6feb9183c61e03935be85
+  revision: 59df13248567da7091e2fc54850e69198dca4d3b
   branch: event_store
   specs:
     jmongo (0.1.1)
 
 GIT
   remote: https://github.com/guyboertje/jrjackson.git
-  revision: d1e9da6682326f9a1286750efea52b6c3e7faa7f
+  revision: ea11df850418f4543954950346b285c9f74776c0
   specs:
     jrjackson (0.0.5)
 
@@ -19,7 +19,6 @@ PATH
       jeweler (~> 1.4)
       jmongo
       jrjackson
-      json (~> 1.4)
       rake (~> 0.8)
       uuid (~> 2.3)
 
@@ -38,8 +37,6 @@ GEM
       bundler (~> 1.0.0)
       git (>= 1.2.5)
       rake
-    json (1.5.1)
-    json (1.5.1-java)
     macaddr (1.0.0)
     rake (0.9.0)
     rspec (2.6.0)

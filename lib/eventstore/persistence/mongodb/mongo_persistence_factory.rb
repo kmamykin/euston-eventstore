@@ -1,10 +1,22 @@
+if RUBY_PLATFORM.to_s == 'java'
+  module JMongo
+    module BasicDBObjectExtentions
+      include ::HashExt
+    end
+  end
+  
+  require 'jmongo'
+else  
+  require 'mongo'
+end
+
 module EventStore
   module Persistence
     module Mongodb
       class MongoPersistenceFactory
         def self.build
-          config = Mongodb::Config.instance
-          connection = Mongo::Connection.new(config.host, config.port, config.options)
+          config = Config.instance
+          connection = ::Mongo::Connection.new(config.host, config.port, config.options)
 
           MongoPersistenceEngine.new connection.db(config.database)
         end
