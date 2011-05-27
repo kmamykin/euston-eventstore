@@ -109,7 +109,7 @@ module EventStore
 
         def mark_commit_as_dispatched(commit)
           try_mongo do
-            persisted_commits.update commit.to_id_query, { 'dispatched' => true }
+            persisted_commits.update commit.to_id_query, { '$set' => { 'dispatched' => true }}
           end
         end
 
