@@ -1,10 +1,10 @@
 module EventStore
   module Persistence
-    module Mongodb   
+    module Mongodb
       class MongoPersistenceEngine
         def initialize(store)
           @store = store
-          
+
           collection_names = store.collection_names
           store.create_collection 'commits'  unless collection_names.include? 'commits'    # :safe = true
           store.create_collection 'snapshot' unless collection_names.include? 'snapshot'   # :safe = false
@@ -22,7 +22,7 @@ module EventStore
 
             stream_head = MongoStreamHead.from_hash persisted_stream_heads.find_one({ '_id' => snapshot.stream_id })
             unsnapshotted = stream_head.head_revision - snapshot.stream_revision
-            persisted_stream_heads.update({ '_id' => snapshot.stream_id }, 
+            persisted_stream_heads.update({ '_id' => snapshot.stream_id },
                                           { '$set' => { 'snapshot_revision' => snapshot.stream_revision, 'unsnapshotted' => unsnapshotted } })
             return true
           rescue Mongo::OperationFailure
@@ -80,7 +80,7 @@ module EventStore
             query = { 'unsnapshotted' => { '$gte' => max_threshold } }
             order = [ 'unsnapshotted', Mongo::DESCENDING ]
 
-            persisted_stream_heads.find(query).sort(order).to_a.map { |hash| MongoStreamHead.from_hash hash }                                
+            persisted_stream_heads.find(query).sort(order).to_a.map { |hash| MongoStreamHead.from_hash hash }
           end
         end
 
@@ -102,9 +102,10 @@ module EventStore
                                              ['events.stream_revision', Mongo::ASCENDING] ], :unique => true,  :name => 'get_from_index'
 
             persisted_commits.ensure_index [ ['commit_timestamp', Mongo::ASCENDING] ], :unique => false, :name => 'commit_timestamp_index'
-          
+
             persisted_stream_heads.ensure_index [ ['unsnapshotted', Mongo::ASCENDING] ], :unique => false, :name => 'unsnapshotted_index'
           end
+          self
         end
 
         def mark_commit_as_dispatched(commit)
@@ -126,7 +127,7 @@ module EventStore
         def persisted_stream_heads
           @store.collection 'streams'
         end
-        
+
         def try_mongo(&block)
           begin
             yield block
@@ -140,7 +141,7 @@ module EventStore
         def update_stream_head_async(stream_id, stream_revision, events_count)
           Thread.fork do
             persisted_stream_heads.update(
-              { '_id' => stream_id }, 
+              { '_id' => stream_id },
               { '$set' => { 'head_revision' => stream_revision }, '$inc' => { 'snapshot_revision' => 0, 'unsnapshotted' => events_count } },
               { :upsert  => true })
           end
