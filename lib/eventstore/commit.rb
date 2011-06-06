@@ -3,20 +3,30 @@ module EventStore
   # Represents a series of events which have been fully committed as a single unit and which apply to the stream indicated.
   class Commit
     def initialize(hash)
+      hash_headers = hash[:headers] || hash['headers']
       defaults = {
-        :stream_id => nil,
-        :stream_revision => 1,
-        :commit_id => nil,
-        :commit_sequence => 1,
-        :commit_timestamp => Time.now.utc,
-        :headers => OpenStruct.new,
-        :events => []
+        :stream_id => hash[:stream_id] || hash['stream_id'],
+        :stream_revision => hash[:stream_revision] || hash['stream_revision'] || 1,
+        :commit_id => hash[:commit_id] || hash['commit_id'],
+        :commit_sequence => hash[:commit_sequence] || hash['commit_sequence'] || 1,
+        :commit_timestamp => hash[:commit_timestamp] || hash['commit_timestamp'] || Time.now.utc,
+        :headers => (hash_headers && hash_headers.is_a?(Hash)) ? hash_headers : OpenStruct.new,
+        :events => hash[:events] || hash['events'] || []
       }
-
-      values = defaults.merge hash
-      defaults.keys.each { |key| instance_variable_set "@#{key}", values[key] }
+      defaults.each { |key,value| instance_variable_set "@#{key}", value }
     end
 
+    def to_hash
+      {
+        :stream_id => stream_id,
+        :stream_revision => stream_revision,
+        :commit_id => commit_id,
+        :commit_sequence => commit_sequence,
+        :commit_timestamp => commit_timestamp,
+        :headers => headers.is_a?(OpenStruct) ? headers.instance_variable_get(:@table) : headers,
+        :events => events
+      }
+    end
     # Gets the value which uniquely identifies the stream to which the commit belongs.
     attr_reader :stream_id
 
@@ -28,7 +38,7 @@ module EventStore
 
     # Gets the value which indicates the sequence (or position) in the stream to which this commit applies.
     attr_reader :commit_sequence
-    
+
     # Gets the point in time at which the commit was persisted.
     attr_reader :commit_timestamp
 
