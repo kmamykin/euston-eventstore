@@ -4,9 +4,9 @@ if RUBY_PLATFORM.to_s == 'java'
       include ::HashExt
     end
   end
-  
+
   require 'jmongo'
-else  
+else
   require 'mongo'
 end
 
@@ -19,6 +19,9 @@ module EventStore
           connection = ::Mongo::Connection.new(config.host, config.port, config.options)
 
           MongoPersistenceEngine.new connection.db(config.database)
+        end
+        def self.build_with_proxy()
+          ZmqPersistenceEngineProxy.new(build.init)
         end
       end
     end

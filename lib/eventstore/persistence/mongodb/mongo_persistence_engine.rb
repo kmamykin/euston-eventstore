@@ -15,7 +15,7 @@ module EventStore
           return false if snapshot.nil?
 
           begin
-            mongo_snapshot = snapshot.to_hash
+            mongo_snapshot = snapshot.is_a?(Hash) ? snapshot : snapshot.to_hash
             id = { '_id' => mongo_snapshot[:_id] }
 
             persisted_snapshots.update(id, { 'payload' => mongo_snapshot[:payload] }.merge(id), { :upsert => true })
