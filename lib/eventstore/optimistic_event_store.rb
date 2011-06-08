@@ -4,6 +4,11 @@ module EventStore
       @persistence = persistence
     end
 
+    def instrumentation
+      return nil unless @persistence.respond_to?(:instrumentation)
+      @persistence.instrumentation
+    end
+
     def add_snapshot(snapshot)
       @persistence.add_snapshot snapshot
     end
@@ -18,10 +23,10 @@ module EventStore
       OptimisticEventStream.new(:stream_id => stream_id,
                                 :persistence => self)
     end
-    
+
     def get_from(stream_id, min_revision, max_revision)
-      @persistence.get_from(:stream_id => stream_id, 
-                            :min_revision => min_revision, 
+      @persistence.get_from(:stream_id => stream_id,
+                            :min_revision => min_revision,
                             :max_revision => max_revision).to_enum
     end
 
@@ -32,11 +37,11 @@ module EventStore
     def get_streams_to_snapshot(max_threshold)
       @persistence.get_streams_to_snapshot max_threshold
     end
-    
+
     def open_stream(options)
-      options = { :stream_id => nil, 
-                  :min_revision => 0, 
-                  :max_revision => 0, 
+      options = { :stream_id => nil,
+                  :min_revision => 0,
+                  :max_revision => 0,
                   :snapshot => nil }.merge(options)
 
       options = options.merge(:max_revision => validate_max_revision(options[:max_revision]),
@@ -48,7 +53,7 @@ module EventStore
         options.delete :stream_id
         options.delete :min_revision
       end
-      
+
       OptimisticEventStream.new options
     end
 

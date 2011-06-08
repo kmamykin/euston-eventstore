@@ -9,7 +9,7 @@ module EventStore
 
         def add_snapshot(snapshot)
           ret = @engine.add_snapshot(snapshot)
-          {'code'='200','status'=>ret.to_s}
+          {:code='200',:status=>ret.to_s}
         end
 
         def commit(attempt) # attempt will be a hash; function returns nil
@@ -27,13 +27,13 @@ module EventStore
 
         def get_snapshot(options)
           try_mongo do
-            @engine.get_snapshotget(options.values_at('stream_id','max_revision'))
+            @engine.get_snapshotget(options.values_at(:stream_id,:max_revision))
           end
         end
 
         def get_streams_to_snapshot(options)
           try_mongo do
-            @engine.get_snapshotget_from(options['max_threshold'])
+            @engine.get_snapshotget_from(options[:max_threshold])
           end
         end
 
@@ -51,7 +51,7 @@ module EventStore
           rescue raise EventStore::ConcurrencyError
             code = '423'
           end
-          {'code'=>code,'status'=>status,'data'=>data}
+          {:code=>code,:status=>status,:data=>data}
       end
     end
   end

@@ -3,17 +3,17 @@ module EventStore
   # Represents a series of events which have been fully committed as a single unit and which apply to the stream indicated.
   class Commit
     def initialize(hash)
-      hash_headers = hash[:headers] || hash['headers']
       defaults = {
-        :stream_id => hash[:stream_id] || hash['stream_id'],
-        :stream_revision => hash[:stream_revision] || hash['stream_revision'] || 1,
-        :commit_id => hash[:commit_id] || hash['commit_id'],
-        :commit_sequence => hash[:commit_sequence] || hash['commit_sequence'] || 1,
-        :commit_timestamp => hash[:commit_timestamp] || hash['commit_timestamp'] || Time.now.utc,
-        :headers => (hash_headers && hash_headers.is_a?(Hash)) ? hash_headers : OpenStruct.new,
-        :events => hash[:events] || hash['events'] || []
+        :stream_id => nil,
+        :stream_revision => 1,
+        :commit_id => nil,
+        :commit_sequence => 1,
+        :commit_timestamp => Time.now.utc,
+        :headers => OpenStruct.new,
+        :events => []
       }
-      defaults.each { |key,value| instance_variable_set "@#{key}", value }
+      values = defaults.merge hash
+      defaults.keys.each { |key| instance_variable_set "@#{key}", values[key] }
     end
 
     def to_hash

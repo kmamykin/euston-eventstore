@@ -4,6 +4,11 @@ module EventStore
       class ZmqPersistenceEngineClient
         def initialize(zmq_client)
           @zmq_client = zmq_client
+          @zmq_client.connect
+        end
+
+        def instrumentation
+          {:server_count=>@zmq_client.server_count}
         end
 
         def add_snapshot(snapshot)
@@ -68,7 +73,8 @@ module EventStore
         end
 
         def process_reply(reply)
-          code,status,data = reply.values_at('code','status','data')
+          rep = JSON.indifferent_parse(reply)
+          code,status,data = rep.values_at(:code,:status,:data)
           return [status,data] if code == '200'
           #status will be the exception and data the backtrace
           raise(EventStore::StorageError, status, data) if code == '503'

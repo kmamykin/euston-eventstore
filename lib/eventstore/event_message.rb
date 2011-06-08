@@ -13,7 +13,7 @@ module EventStore
     end
 
     def to_hash
-      {'headers'=>@headers,'body'=>@body}
+      {:headers=>@headers,:body=>@body}
     end
 
     # Gets the metadata which provides additional, unstructured information about this message.
