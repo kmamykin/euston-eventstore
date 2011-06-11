@@ -1,9 +1,8 @@
 GIT
   remote: https://github.com/guyboertje/jmongo.git
-  revision: 59df13248567da7091e2fc54850e69198dca4d3b
-  branch: event_store
+  revision: db543612bb50cc077aac637c00f901d590d1c834
   specs:
-    jmongo (0.1.1)
+    jmongo (0.1.4)
 
 PATH
   remote: .
@@ -19,7 +18,7 @@ PATH
 GEM
   remote: http://rubygems.org/
   specs:
-    activesupport (3.0.7)
+    activesupport (3.0.8)
     awesome_print (0.4.0)
     diff-lcs (1.1.2)
     fuubar (0.0.5)
