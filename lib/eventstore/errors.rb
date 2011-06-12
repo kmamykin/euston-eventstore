@@ -13,4 +13,8 @@ module EventStore
   
   # Represents an attempt to commit the same information more than once.
   class StreamNotFoundError < RuntimeError; end
+
+  # Represents an error when the proxy returns a non 200 code that does not map to any of the above errors.
+  class ProxyCallError < RuntimeError; end
+
 end

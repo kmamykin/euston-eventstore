@@ -9,7 +9,7 @@ module EventStore
 
         def add_snapshot(snapshot)
           ret = @engine.add_snapshot(snapshot)
-          {:code='200',:status=>ret.to_s}
+          {:code => '200', :status => ret.to_s}
         end
 
         def commit(attempt) # attempt will be a hash; function returns nil
@@ -48,10 +48,10 @@ module EventStore
             code, status, data = '503', e.message, e.backtrace
           rescue EventStore::DuplicateCommitError => e
             code = '409'
-          rescue raise EventStore::ConcurrencyError
+          rescue EventStore::ConcurrencyError => e
             code = '423'
           end
-          {:code=>code,:status=>status,:data=>data}
+          {:code => code, :status => status, :data => data}
       end
     end
   end

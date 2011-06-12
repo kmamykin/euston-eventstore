@@ -81,6 +81,7 @@ module EventStore
           raise(EventStore::ConcurrencyError, status, data) if code == '423'
           raise(EventStore::DuplicateCommitError, status, data) if code == '409'
           raise(EventStore::StreamNotFoundError, status, data) if code == '422'
+          raise(EventStore::ProxyCallError,status,data)
         end
       end
     end
