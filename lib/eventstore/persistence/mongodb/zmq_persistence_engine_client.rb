@@ -73,7 +73,7 @@ module EventStore
         end
 
         def process_reply(reply)
-          rep = JSON.indifferent_parse(reply)
+          rep = JSON.parse(reply).recursive_symbolize_keys!
           code,status,data = rep.values_at(:code,:status,:data)
           return [status,data] if code == '200'
           #status will be the exception and data the backtrace

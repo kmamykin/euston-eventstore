@@ -2,5 +2,12 @@ source 'http://rubygems.org'
 
 gemspec
 
-gem 'jmongo', :git => 'https://github.com/guyboertje/jmongo.git', :platforms => :jruby
+platforms :jruby do
+  gem 'jmongo', :git => 'https://github.com/guyboertje/jmongo.git'
+end
+
+platforms :ruby do
+  gem 'mongo'
+end
+
 gem 'json'

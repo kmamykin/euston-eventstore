@@ -9,7 +9,6 @@ PATH
   specs:
     eventstore (0.0.2)
       activesupport (~> 3.0)
-      jeweler (~> 1.4)
       jmongo
       json (~> 1.5)
       rake (~> 0.8)
@@ -53,8 +52,10 @@ DEPENDENCIES
   awesome_print
   eventstore!
   fuubar
+  jeweler (~> 1.4)
   jmongo!
   json
+  mongo
   rspec-core (~> 2.6)
   rspec-expectations (~> 2.6)
   rspec-mocks (~> 2.6)
