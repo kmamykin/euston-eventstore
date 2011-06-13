@@ -52,6 +52,7 @@ module EventStore
             code = '423'
           end
           {:code => code, :status => status, :data => data}
+        end
       end
     end
   end
