@@ -27,13 +27,13 @@ module EventStore
 
         def get_snapshot(options)
           try_mongo do
-            @engine.get_snapshotget(options.values_at(:stream_id,:max_revision))
+            @engine.get_snapshot(*options.values_at(:stream_id,:max_revision))
           end
         end
 
         def get_streams_to_snapshot(options)
           try_mongo do
-            @engine.get_snapshotget_from(options[:max_threshold])
+            @engine.get_streams_to_snapshot(options[:max_threshold])
           end
         end
 
