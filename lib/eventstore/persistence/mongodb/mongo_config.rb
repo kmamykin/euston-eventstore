@@ -19,7 +19,7 @@ module EventStore
         end
 
         attr_writer :host, :port, :options
-        attr_accessor :database
+        attr_accessor :database, :logger
       end
     end
   end
