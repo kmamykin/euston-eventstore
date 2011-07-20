@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/guyboertje/jmongo.git
-  revision: db543612bb50cc077aac637c00f901d590d1c834
+  revision: ee94eaf228e5a3c97abb9631bf92dc34d0ff1a9e
   specs:
-    jmongo (0.1.4)
+    jmongo (0.1.6)
 
 PATH
   remote: .
@@ -17,7 +17,7 @@ PATH
 GEM
   remote: http://rubygems.org/
   specs:
-    activesupport (3.0.8)
+    activesupport (3.0.9)
     awesome_print (0.4.0)
     diff-lcs (1.1.2)
     fuubar (0.0.5)
@@ -25,11 +25,11 @@ GEM
       rspec-instafail (~> 0.1.4)
       ruby-progressbar (~> 0.0.10)
     git (1.2.5)
-    jeweler (1.6.2)
+    jeweler (1.6.4)
       bundler (~> 1.0)
       git (>= 1.2.5)
       rake
-    json (1.5.1-java)
+    json (1.5.3-java)
     macaddr (1.0.0)
     rake (0.9.2)
     rspec (2.6.0)
