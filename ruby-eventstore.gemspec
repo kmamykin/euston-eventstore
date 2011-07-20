@@ -15,17 +15,16 @@ Gem::Specification.new do |s|
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ['lib']
-  
+
   s.add_dependency 'activesupport', '~> 3.0'
   s.add_dependency 'json',          '~> 1.5'
+  s.add_dependency 'rake',          '~> 0.8'
   s.add_dependency 'uuid',          '~> 2.3'
-  if RUBY_PLATFORM.to_s == 'java'
-    s.add_dependency 'jmongo'
-  else
+
+  unless RUBY_PLATFORM.to_s == 'java'
     s.add_dependency 'bson_ext',      '~> 1.1'
     s.add_dependency 'mongo',         '~> 1.3.1'
   end
-  s.add_dependency 'rake',          '~> 0.8'
 
   s.add_development_dependency 'awesome_print'
   s.add_development_dependency 'jeweler',       '~> 1.4'
