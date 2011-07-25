@@ -3,7 +3,7 @@ source 'http://rubygems.org'
 gemspec
 
 platforms :jruby do
-  gem 'jmongo', :git => 'https://github.com/guyboertje/jmongo.git'
+  gem 'jmongo', :git => 'https://github.com/leemhenson/jmongo.git'
 end
 
 platforms :ruby do

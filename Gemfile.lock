@@ -1,6 +1,6 @@
 GIT
-  remote: https://github.com/guyboertje/jmongo.git
-  revision: ee94eaf228e5a3c97abb9631bf92dc34d0ff1a9e
+  remote: https://github.com/leemhenson/jmongo.git
+  revision: 83e3195330ad87972571c69cf7f1c1515c2dc185
   specs:
     jmongo (0.1.6)
 
@@ -9,7 +9,6 @@ PATH
   specs:
     eventstore (0.0.2)
       activesupport (~> 3.0)
-      jmongo
       json (~> 1.5)
       rake (~> 0.8)
       uuid (~> 2.3)
