@@ -1,4 +1,4 @@
-require_relative '../../spec_helper'
+require File.join(File.dirname(__FILE__), '..', '..', 'spec_helper')
 
 describe ::EventStore do
   let(:uuid) { UUID.new }
@@ -13,7 +13,7 @@ describe ::EventStore do
       before do
         persistence.stub(:get_undispatched_commits) { [] }
         persistence.should_receive(:mark_commit_as_dispatched).with(commit).once
-        
+
         @dispatched_commits = []
 
         @dispatcher = EventStore::Dispatcher::SynchronousDispatcher.new(persistence) do |c|

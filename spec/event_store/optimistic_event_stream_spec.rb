@@ -1,4 +1,4 @@
-require_relative '../spec_helper'
+require File.join(File.dirname(__FILE__), '..', 'spec_helper')
 
 describe ::EventStore do
   let(:uuid) { UUID.new }
@@ -85,7 +85,7 @@ describe ::EventStore do
     end
 
     context 'when adding a null event message' do
-      before do 
+      before do
         stream << nil
       end
 
@@ -95,17 +95,17 @@ describe ::EventStore do
     end
 
     context 'when adding an unpopulated event message' do
-      before do 
+      before do
         stream << EventStore::EventMessage.new(nil)
       end
 
-      it 'is ignored' do 
+      it 'is ignored' do
         stream.uncommitted_events.should be_empty
       end
     end
 
     context 'when adding a fully populated event message' do
-      before do 
+      before do
         stream << EventStore::EventMessage.new('populated')
       end
 
@@ -179,7 +179,7 @@ describe ::EventStore do
       before do
         persistence.stub(:commit) { |c| @constructed = c }
         stream << uncommitted
-        headers.each { |key, value| stream.uncommitted_headers[key] = value }        
+        headers.each { |key, value| stream.uncommitted_headers[key] = value }
         stream.commit_changes commit_id
       end
 
@@ -246,7 +246,7 @@ describe ::EventStore do
     context 'when committing with an identifier that was previously read' do
     	let(:committed) { [ build_commit_stub(stream_id, 1, 1, 1) ] }
       let(:duplicate_commit_id) { committed.first.commit_id }
-      
+
       before do
         persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { committed }
 
@@ -276,7 +276,7 @@ describe ::EventStore do
       before do
         persistence.stub(:commit) { raise EventStore::ConcurrencyError.new }
     		persistence.stub(:get_from).with(stream_id, stream_revision, EventStore::FIXNUM_MAX) { committed }
-    		persistence.stub(:get_from).with(stream_id, stream_revision + 1, EventStore::FIXNUM_MAX) do 
+    		persistence.stub(:get_from).with(stream_id, stream_revision + 1, EventStore::FIXNUM_MAX) do
     		  @queried_for_new_commits = true
           discovered_on_commit
         end

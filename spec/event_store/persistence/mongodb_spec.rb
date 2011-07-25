@@ -1,4 +1,4 @@
-require_relative '../../spec_helper'
+require File.join(File.dirname(__FILE__), '..', '..', 'spec_helper')
 
 describe ::EventStore do
   describe 'mongodb persistence' do
@@ -226,7 +226,7 @@ describe ::EventStore do
     end
 
 # Timing issues with this one?
-# 
+#
 #    context 'when adding a commit after a snapshot' do
 #      let(:within_threshold) { 2 }
 #      let(:over_threshold) { 3 }
