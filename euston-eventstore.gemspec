@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'euston-eventstore'
-  s.version     = '1.0.3'
+  s.version     = '1.0.4'
   s.date        = '2011-09-15'
   s.platform    = RUBY_PLATFORM.to_s == 'java' ? 'java' : Gem::Platform::RUBY
   s.authors     = ['Lee Henson', 'Guy Boertje']
@@ -56,7 +56,7 @@ Gem::Specification.new do |s|
     s.add_dependency 'json-jruby',              '~> 1.5.0'
     s.add_dependency 'jmongo',                  '~> 1.0.0'
   else
-    s.add_dependency 'bson_ext',                '~> 1.1.0'
+    s.add_dependency 'bson_ext',                '~> 1.3.1'
     s.add_dependency 'json',                    '~> 1.5.0'
     s.add_dependency 'mongo',                   '~> 1.3.1'
   end
