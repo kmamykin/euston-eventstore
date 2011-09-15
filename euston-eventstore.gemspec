@@ -1,8 +1,8 @@
 Gem::Specification.new do |s|
   s.name        = 'euston-eventstore'
-  s.version     = '1.0.2'
+  s.version     = '1.0.3'
   s.date        = '2011-09-15'
-  s.platform    = Gem::Platform::RUBY
+  s.platform    = RUBY_PLATFORM.to_s == 'java' ? 'java' : Gem::Platform::RUBY
   s.authors     = ['Lee Henson', 'Guy Boertje']
   s.email       = ['lee.m.henson@gmail.com', 'guyboertje@gmail.com']
   s.summary     = %q{Event store for use with Euston.}
@@ -10,8 +10,6 @@ Gem::Specification.new do |s|
   s.homepage    = 'http://github.com/leemhenson/euston-eventstore'
   # = MANIFEST =
   s.files = %w[
-    Gemfile
-    Gemfile.lock
     Rakefile
     euston-eventstore.gemspec
     lib/euston-eventstore.rb
@@ -52,6 +50,17 @@ Gem::Specification.new do |s|
   s.add_dependency 'activesupport',             '~> 3.0.9'
   s.add_dependency 'hash-keys',                 '~> 1.0.0'
   s.add_dependency 'require_all',               '~> 1.2.0'
+  s.add_dependency 'uuid',                      '~> 2.3.0'
+
+  if RUBY_PLATFORM.to_s == 'java'
+    s.add_dependency 'json-jruby',              '~> 1.5.0'
+    s.add_dependency 'jmongo',                  '~> 1.0.0'
+  else
+    s.add_dependency 'bson_ext',                '~> 1.1.0'
+    s.add_dependency 'json',                    '~> 1.5.0'
+    s.add_dependency 'mongo',                   '~> 1.3.1'
+  end
+
   s.add_development_dependency 'awesome_print', '~> 0.4.0'
   s.add_development_dependency 'fuubar',        '~> 0.0.0'
   s.add_development_dependency 'rspec',         '~> 2.6.0'

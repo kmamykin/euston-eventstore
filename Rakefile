@@ -32,8 +32,31 @@ def gem_file
   "#{name}-#{version}.gem"
 end
 
-def replace_header(head, header_name)
-  head.sub!(/(\.#{header_name}\s*= ').*'/) { "#{$1}#{send(header_name)}'"}
+def replace_header(head, header_name, provider = nil)
+  if provider
+    value = send(provider)
+  else
+    value = "'#{send(header_name)}'"
+  end
+
+  provider ||= header_name
+  head.sub!(/(\.#{header_name}\s*= ).*/) { "#{$1}#{value}"}
+end
+
+def platform
+  jruby? ? '-java' : ''
+end
+
+def platform_dependant_gem_file
+  "#{name}#{platform}-#{version}.gem"
+end
+
+def platform_dependent_version
+  "'#{version}#{platform}'"
+end
+
+def jruby?
+  RUBY_PLATFORM.to_s == 'java'
 end
 
 #############################################################################
@@ -44,8 +67,8 @@ end
 
 default_rspec_opts = %w[--colour --format Fuubar]
 
-desc "Run all the specs"
-RSpec::Core::RakeTask.new do |t|
+desc "Run all examples"
+RSpec::Core::RakeTask.new(:spec) do |t|
   t.rspec_opts = default_rspec_opts
 end
 
@@ -55,24 +78,39 @@ end
 #
 #############################################################################
 
-desc "Create tag v#{version} and build and push #{gem_file} to Rubygems"
+def built_gem
+  @built_gem ||= Dir["#{name}*.gem"].first
+end
+
+desc "Create tag v#{platform_dependent_version} and build and push #{platform_dependant_gem_file} to Rubygems"
 task :release => :build do
   unless `git branch` =~ /^\* master$/
     puts "You must be on the master branch to release!"
     exit!
   end
-  sh "git commit --allow-empty -a -m 'Release #{version}'"
-  sh "git tag v#{version}"
+
+  sh "git commit --allow-empty -a -m 'Release #{platform_dependent_version}'"
+  sh "git tag v#{platform_dependent_version}"
   sh "git push origin master"
-  sh "git push origin v#{version}"
-  sh "gem push pkg/#{name}-#{version}.gem"
+  sh "git push origin v#{platform_dependent_version}"
+
+  command = "gem push pkg/#{platform_dependant_gem_file}"
+
+  if jruby?
+    puts "--------------------------------------------------------------------------------------"
+    puts "can't push to rubygems using jruby at the moment, so switch to mri and run: #{command}"
+    puts "--------------------------------------------------------------------------------------"
+  else
+    puts "would have run: #{command}"
+    #sh command
+  end
 end
 
-desc "Build #{gem_file} into the pkg directory"
+desc "Build #{platform_dependant_gem_file} into the pkg directory"
 task :build => :gemspec do
   sh "mkdir -p pkg"
   sh "gem build #{gemspec_file}"
-  sh "mv #{gem_file} pkg"
+  sh "mv #{built_gem} pkg"
 end
 
 desc "Generate #{gemspec_file}"
