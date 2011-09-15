@@ -101,8 +101,7 @@ task :release => :build do
     puts "can't push to rubygems using jruby at the moment, so switch to mri and run: #{command}"
     puts "--------------------------------------------------------------------------------------"
   else
-    puts "would have run: #{command}"
-    #sh command
+    sh command
   end
 end
 
