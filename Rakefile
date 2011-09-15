@@ -48,7 +48,7 @@ def platform
 end
 
 def platform_dependant_gem_file
-  "#{name}#{platform}-#{version}.gem"
+  "#{name}-#{version}#{platform}.gem"
 end
 
 def platform_dependent_version
