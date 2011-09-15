@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'euston-eventstore'
-  s.version     = '1.0.0'
+  s.version     = '1.0.1'
   s.date        = '2011-09-15'
   s.platform    = Gem::Platform::RUBY
   s.authors     = ['Lee Henson', 'Guy Boertje']
