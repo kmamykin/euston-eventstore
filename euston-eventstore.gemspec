@@ -47,7 +47,7 @@ Gem::Specification.new do |s|
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
 
-  if RUBY_PLATFORM.to_s == 'java'
+  if s.platform.to_s == 'java'
     s.add_dependency 'json-jruby',              '~> 1.5'
     s.add_dependency 'jmongo',                  '~> 1'
   else
