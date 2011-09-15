@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'euston-eventstore'
-  s.version     = '1.0.1'
+  s.version     = '1.0.2'
   s.date        = '2011-09-15'
   s.platform    = Gem::Platform::RUBY
   s.authors     = ['Lee Henson', 'Guy Boertje']
@@ -10,6 +10,8 @@ Gem::Specification.new do |s|
   s.homepage    = 'http://github.com/leemhenson/euston-eventstore'
   # = MANIFEST =
   s.files = %w[
+    Gemfile
+    Gemfile.lock
     Rakefile
     euston-eventstore.gemspec
     lib/euston-eventstore.rb
@@ -47,20 +49,10 @@ Gem::Specification.new do |s|
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
 
-  if s.platform.to_s == 'java'
-    s.add_dependency 'json-jruby',              '~> 1.5'
-    s.add_dependency 'jmongo',                  '~> 1'
-  else
-    s.add_dependency 'bson_ext',                '~> 1.1'
-    s.add_dependency 'json',                    '~> 1.5'
-    s.add_dependency 'mongo',                   '~> 1.3.1'
-    s.add_development_dependency 'uuid',        '~> 2.3'
-  end
-
-  s.add_dependency 'activesupport',             '~> 3.0'
-  s.add_dependency 'hash-keys',                 '~> 1'
-  s.add_dependency 'require_all',               '~> 1.2'
-  s.add_development_dependency 'awesome_print', '~> 0.4'
-  s.add_development_dependency 'fuubar',        '~> 0.0'
-  s.add_development_dependency 'rspec',         '~> 2.6'
+  s.add_dependency 'activesupport',             '~> 3.0.9'
+  s.add_dependency 'hash-keys',                 '~> 1.0.0'
+  s.add_dependency 'require_all',               '~> 1.2.0'
+  s.add_development_dependency 'awesome_print', '~> 0.4.0'
+  s.add_development_dependency 'fuubar',        '~> 0.0.0'
+  s.add_development_dependency 'rspec',         '~> 2.6.0'
 end
