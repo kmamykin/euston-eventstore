@@ -1,3 +1,0 @@
-default: --format pretty features
-wip: --tags @wip:3 --wip --color features
-rerun: --format --out rerun.txt --strict --color --tags ~@wip

@@ -1,20 +1,20 @@
 require File.join(File.dirname(__FILE__), '..', 'spec_helper')
 
-describe ::EventStore do
-  let(:uuid) { UUID.new }
+describe Euston::EventStore do
+  let(:uuid) { Uuid }
   let(:default_stream_revision) { 1 }
   let(:default_commit_sequence) { 1 }
   let(:stream_id) { uuid.generate }
   let(:persistence) { double('persistence') }
-  let(:stream) { EventStore::OptimisticEventStream.new(:stream_id => stream_id, :persistence => persistence) }
+  let(:stream) { Euston::EventStore::OptimisticEventStream.new(:stream_id => stream_id, :persistence => persistence) }
 
   after { stream_id = uuid.generate }
 
   def build_commit_stub(stream_id, revision, sequence, length)
-    ::EventStore::Commit.new( :stream_id => stream_id,
-                              :stream_revision => revision,
-                              :commit_sequence => sequence,
-                              :events => length.times.map{ ::EventStore::EventMessage.new })
+    Euston::EventStore::Commit.new( :stream_id => stream_id,
+                                    :stream_revision => revision,
+                                    :commit_sequence => sequence,
+                                    :events => length.times.map{ Euston::EventStore::EventMessage.new })
   end
 
   describe 'optimistic event stream' do
@@ -31,10 +31,10 @@ describe ::EventStore do
 
       before do
         persistence.stub(:get_from).with(stream_id, min_revision, max_revision) { committed }
-        @stream = EventStore::OptimisticEventStream.new(:stream_id => stream_id,
-                                                        :persistence => persistence,
-                                                        :min_revision => min_revision,
-                                                        :max_revision => max_revision)
+        @stream = Euston::EventStore::OptimisticEventStream.new(:stream_id => stream_id,
+                                                                :persistence => persistence,
+                                                                :min_revision => min_revision,
+                                                                :max_revision => max_revision)
       end
 
       it 'has the correct stream identifier' do
@@ -72,11 +72,11 @@ describe ::EventStore do
       ] }
 
       before do
-        persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { committed }
-        @stream = EventStore::OptimisticEventStream.new(:stream_id => stream_id,
-                                                        :persistence => persistence,
-                                                        :min_revision => 0,
-                                                        :max_revision => EventStore::FIXNUM_MAX)
+        persistence.stub(:get_from).with(stream_id, 0, Euston::EventStore::FIXNUM_MAX) { committed }
+        @stream = Euston::EventStore::OptimisticEventStream.new(:stream_id => stream_id,
+                                                                :persistence => persistence,
+                                                                :min_revision => 0,
+                                                                :max_revision => Euston::EventStore::FIXNUM_MAX)
       end
 
       it 'sets the stream revision to the revision of the most recent event' do
@@ -96,7 +96,7 @@ describe ::EventStore do
 
     context 'when adding an unpopulated event message' do
       before do
-        stream << EventStore::EventMessage.new(nil)
+        stream << Euston::EventStore::EventMessage.new(nil)
       end
 
       it 'is ignored' do
@@ -106,7 +106,7 @@ describe ::EventStore do
 
     context 'when adding a fully populated event message' do
       before do
-        stream << EventStore::EventMessage.new('populated')
+        stream << Euston::EventStore::EventMessage.new('populated')
       end
 
       it 'adds the event to the set of uncommitted events' do
@@ -116,8 +116,8 @@ describe ::EventStore do
 
     context 'when adding multiple populated event messages' do
       before do
-        stream << EventStore::EventMessage.new('populated')
-        stream << EventStore::EventMessage.new('also populated')
+        stream << Euston::EventStore::EventMessage.new('populated')
+        stream << Euston::EventStore::EventMessage.new('also populated')
       end
 
       it 'adds all the events provided to the set of uncommitted events' do
@@ -129,7 +129,7 @@ describe ::EventStore do
       let(:my_event) { 'some event data' }
 
       before do
-        stream << EventStore::EventMessage.new(my_event)
+        stream << Euston::EventStore::EventMessage.new(my_event)
       end
 
       it 'adds the uncommitted event to the set of uncommitted events' do
@@ -143,7 +143,7 @@ describe ::EventStore do
 
     context 'when clearing any uncommitted changes' do
       before do
-        stream << EventStore::EventMessage.new('')
+        stream << Euston::EventStore::EventMessage.new('')
         stream.clear_changes
       end
 
@@ -173,7 +173,7 @@ describe ::EventStore do
 
     context 'when committing any uncommitted changes' do
       let(:commit_id) { uuid.generate }
-      let(:uncommitted) { EventStore::EventMessage.new '' }
+      let(:uncommitted) { Euston::EventStore::EventMessage.new '' }
       let(:headers) { { :key => :value } }
 
       before do
@@ -248,12 +248,12 @@ describe ::EventStore do
       let(:duplicate_commit_id) { committed.first.commit_id }
 
       before do
-        persistence.stub(:get_from).with(stream_id, 0, EventStore::FIXNUM_MAX) { committed }
+        persistence.stub(:get_from).with(stream_id, 0, Euston::EventStore::FIXNUM_MAX) { committed }
 
-        @stream = EventStore::OptimisticEventStream.new(:stream_id => stream_id,
-                                                        :persistence => persistence,
-                                                        :min_revision => 0,
-                                                        :max_revision => EventStore::FIXNUM_MAX)
+        @stream = Euston::EventStore::OptimisticEventStream.new(:stream_id => stream_id,
+                                                                :persistence => persistence,
+                                                                :min_revision => 0,
+                                                                :max_revision => Euston::EventStore::FIXNUM_MAX)
 
         begin
           @stream.commit_changes duplicate_commit_id
@@ -263,28 +263,28 @@ describe ::EventStore do
       end
 
     	it 'throws a DuplicateCommitError' do
-    		@thrown.should be_a(EventStore::DuplicateCommitError)
+    		@thrown.should be_a(Euston::EventStore::DuplicateCommitError)
   		end
     end
 
     context 'when committing after another thread or process has moved the stream head' do
       let(:stream_revision) { 1 }
     	let(:committed) { [ build_commit_stub(stream_id, 1, 1, 1) ] }
-    	let(:uncommitted) { EventStore::EventMessage.new ''  }
+    	let(:uncommitted) { Euston::EventStore::EventMessage.new ''  }
     	let(:discovered_on_commit) { [ build_commit_stub(stream_id, 3, 2, 2) ] }
 
       before do
-        persistence.stub(:commit) { raise EventStore::ConcurrencyError.new }
-    		persistence.stub(:get_from).with(stream_id, stream_revision, EventStore::FIXNUM_MAX) { committed }
-    		persistence.stub(:get_from).with(stream_id, stream_revision + 1, EventStore::FIXNUM_MAX) do
+        persistence.stub(:commit) { raise Euston::EventStore::ConcurrencyError.new }
+    		persistence.stub(:get_from).with(stream_id, stream_revision, Euston::EventStore::FIXNUM_MAX) { committed }
+    		persistence.stub(:get_from).with(stream_id, stream_revision + 1, Euston::EventStore::FIXNUM_MAX) do
     		  @queried_for_new_commits = true
           discovered_on_commit
         end
 
-    		@stream = EventStore::OptimisticEventStream.new(:stream_id => stream_id,
-                                                        :persistence => persistence,
-                                                        :min_revision => stream_revision,
-                                                        :max_revision => EventStore::FIXNUM_MAX)
+    		@stream = Euston::EventStore::OptimisticEventStream.new(:stream_id => stream_id,
+                                                                :persistence => persistence,
+                                                                :min_revision => stream_revision,
+                                                                :max_revision => Euston::EventStore::FIXNUM_MAX)
     		@stream << uncommitted
 
         begin
@@ -295,7 +295,7 @@ describe ::EventStore do
       end
 
     	it 'throws a ConcurrencyError' do
-    		@thrown.should be_a(EventStore::ConcurrencyError)
+    		@thrown.should be_a(Euston::EventStore::ConcurrencyError)
   		end
 
     	it 'queries the underlying storage to discover the new commits' do

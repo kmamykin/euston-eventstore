@@ -1,5 +1,5 @@
 require 'ap'
-require 'eventstore'
+require 'euston-eventstore'
 
 if RUBY_PLATFORM.to_s == 'java'
   require 'jmongo'
@@ -7,7 +7,16 @@ else
   require 'mongo'
 end
 
-require 'uuid'
+if RUBY_PLATFORM.to_s == 'java'
+  module Uuid
+    def self.generate
+      Java::JavaUtil::UUID.randomUUID().toString()
+    end
+  end
+else
+  require 'uuid'
+  Uuid = UUID.new
+end
 
 require 'rspec/core'
 require 'rspec/core/rake_task'
@@ -16,12 +25,12 @@ require 'rspec/mocks'
 
 require 'support/array_enumeration_counter'
 
-mongo_config = EventStore::Persistence::Mongodb::Config.instance
+mongo_config = Euston::EventStore::Persistence::Mongodb::Config.instance
 mongo_config.database = 'event_store_tests'
 
 RSpec.configure do |config|
   config.fail_fast = true
-  
+
   config.before :each do
     connection = Mongo::Connection.new(mongo_config.host, mongo_config.port, mongo_config.options)
     db = connection.db(mongo_config.database)

@@ -1,7 +1,7 @@
 require File.join(File.dirname(__FILE__), '..', '..', 'spec_helper')
 
-describe ::EventStore do
-  let(:uuid) { UUID.new }
+describe Euston::EventStore do
+  let(:uuid) { Uuid }
 
   describe 'asynchronous dispatcher' do
     context 'when instantiating the asynchronous dispatcher' do
@@ -16,7 +16,7 @@ describe ::EventStore do
         bus.should_receive(:publish).with(commits.first).once
         bus.should_receive(:publish).with(commits.last).once
 
-        EventStore::Dispatcher::AsynchronousDispatcher.new bus, persistence
+        Euston::EventStore::Dispatcher::AsynchronousDispatcher.new bus, persistence
         sleep 0.25
       end
 
@@ -34,7 +34,7 @@ describe ::EventStore do
         bus.should_receive(:publish).with(commit).once
         persistence.should_receive(:mark_commit_as_dispatched).with(commit).once
 
-        @dispatcher = EventStore::Dispatcher::AsynchronousDispatcher.new bus, persistence
+        @dispatcher = Euston::EventStore::Dispatcher::AsynchronousDispatcher.new bus, persistence
         @dispatcher.dispatch commit
         sleep 0.25
       end
@@ -50,7 +50,7 @@ describe ::EventStore do
       before do
         persistence.stub(:get_undispatched_commits) { [] }
 
-        @dispatcher = EventStore::Dispatcher::AsynchronousDispatcher.new nil, persistence do |commit, exception|
+        @dispatcher = Euston::EventStore::Dispatcher::AsynchronousDispatcher.new nil, persistence do |commit, exception|
           @caught_commit = commit
           @caught_exception = exception
         end
@@ -59,7 +59,7 @@ describe ::EventStore do
         sleep 0.25
       end
 
-      it('provides the commit that caused the error') { @caught_commit.should be_an(EventStore::Commit) }
+      it('provides the commit that caused the error') { @caught_commit.should be_an(Euston::EventStore::Commit) }
       it('provides the exception') { @caught_exception.should be_an(Exception) }
     end
 
@@ -69,7 +69,7 @@ describe ::EventStore do
                    :commit_id => uuid.generate,
                    :commit_sequence => 0 }
 
-      EventStore::Commit.new(defaults.merge options)
+      Euston::EventStore::Commit.new(defaults.merge options)
     end
   end
 end

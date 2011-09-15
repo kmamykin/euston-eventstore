@@ -1,11 +1,11 @@
 require File.join(File.dirname(__FILE__), '..', '..', 'spec_helper')
 
-describe ::EventStore do
+describe Euston::EventStore do
   describe 'mongodb persistence' do
-    let(:uuid) { UUID.new }
+    let(:uuid) { Uuid }
     let(:database) { 'event_store_tests' }
-    let(:config) { EventStore::Persistence::Mongodb::Config }
-    let(:factory) { EventStore::Persistence::Mongodb::MongoPersistenceFactory }
+    let(:config) { Euston::EventStore::Persistence::Mongodb::Config }
+    let(:factory) { Euston::EventStore::Persistence::Mongodb::MongoPersistenceFactory }
     let(:stream_id) { uuid.generate }
 
     before do
@@ -26,7 +26,7 @@ describe ::EventStore do
 
         @persisted = @persistence.get_from(:stream_id => stream_id,
                                            :min_revision => 0,
-                                           :max_revision => EventStore::FIXNUM_MAX).first
+                                           :max_revision => Euston::EventStore::FIXNUM_MAX).first
       end
 
       it('correctly persists the stream identifier') { @persisted.stream_id.should == attempt.stream_id }
@@ -42,7 +42,7 @@ describe ::EventStore do
       it('makes the commit available to be read from the stream') {
         @persistence.get_from(:stream_id => stream_id,
                               :min_revision => 0,
-                              :max_revision => EventStore::FIXNUM_MAX).first.commit_id.should == attempt.commit_id }
+                              :max_revision => Euston::EventStore::FIXNUM_MAX).first.commit_id.should == attempt.commit_id }
 
       it('adds the commit to the set of undispatched commits') {
 			  @persistence.get_undispatched_commits.detect { |x| x.commit_id == attempt.commit_id }.should_not be_nil }
@@ -94,7 +94,7 @@ describe ::EventStore do
         end
       end
 
-      it('raises a ConcurrencyError') { @caught.should be_an(EventStore::ConcurrencyError) }
+      it('raises a ConcurrencyError') { @caught.should be_an(Euston::EventStore::ConcurrencyError) }
     end
 
     context 'when committing a stream with the same sequence' do
@@ -116,7 +116,7 @@ describe ::EventStore do
         end
       end
 
-      it('raises a ConcurrencyError') { @caught.should be_an(EventStore::ConcurrencyError) }
+      it('raises a ConcurrencyError') { @caught.should be_an(Euston::EventStore::ConcurrencyError) }
     end
 
     context 'when attempting to overwrite a committed sequence' do
@@ -133,7 +133,7 @@ describe ::EventStore do
         end
       end
 
-      it('raises a ConcurrencyError') { @caught.should be_an(EventStore::ConcurrencyError) }
+      it('raises a ConcurrencyError') { @caught.should be_an(Euston::EventStore::ConcurrencyError) }
     end
 
     context 'when attempting to persist a commit twice' do
@@ -149,7 +149,7 @@ describe ::EventStore do
         end
       end
 
-      it('raises a DuplicateCommitError') { @caught.should be_an(EventStore::DuplicateCommitError) }
+      it('raises a DuplicateCommitError') { @caught.should be_an(Euston::EventStore::DuplicateCommitError) }
     end
 
     context 'when a commit has been marked as dispatched' do
@@ -165,7 +165,7 @@ describe ::EventStore do
     end
 
     context 'when saving a snapshot' do
-      let(:snapshot) { EventStore::Snapshot.new stream_id, 1, { :key => :value } }
+      let(:snapshot) { Euston::EventStore::Snapshot.new stream_id, 1, { :key => :value } }
 
       before do
         @persistence.commit new_attempt
@@ -180,9 +180,9 @@ describe ::EventStore do
     end
 
     context 'when retrieving a snapshot' do
-      let(:too_far_back) { EventStore::Snapshot.new stream_id, 1, {} }
-      let(:correct) { EventStore::Snapshot.new stream_id, 3, { 'key' => 'value' } }
-      let(:too_far_forward) { EventStore::Snapshot.new stream_id, 5, {} }
+      let(:too_far_back) { Euston::EventStore::Snapshot.new stream_id, 1, {} }
+      let(:correct) { Euston::EventStore::Snapshot.new stream_id, 3, { 'key' => 'value' } }
+      let(:too_far_forward) { Euston::EventStore::Snapshot.new stream_id, 5, {} }
       let(:commit1) { new_attempt }
       let(:commit2) { next_attempt commit1 }
       let(:commit3) { next_attempt commit2 }
@@ -209,7 +209,7 @@ describe ::EventStore do
       let(:oldest) { new_attempt }
       let(:oldest2) { next_attempt oldest }
       let(:newest) { next_attempt oldest2 }
-      let(:snapshot) { EventStore::Snapshot.new stream_id, newest.stream_revision, { :key => :value } }
+      let(:snapshot) { Euston::EventStore::Snapshot.new stream_id, newest.stream_revision, { :key => :value } }
 
       before do
         @persistence.commit oldest
@@ -241,7 +241,7 @@ describe ::EventStore do
 
 #        sleep 0.25
 
-#        @persistence.add_snapshot EventStore::Snapshot.new(stream_id, oldest2.stream_revision, snapshot_data)
+#        @persistence.add_snapshot Euston::EventStore::Snapshot.new(stream_id, oldest2.stream_revision, snapshot_data)
 #        @persistence.commit newest
 #      end
 
@@ -281,21 +281,21 @@ describe ::EventStore do
                    :commit_timestamp => Time.now.utc,
                    :headers => { 'A header' => 'A string value',
                                  'Another header' => 2 },
-                   :events => [ EventStore::EventMessage.new(:some_property => 'test'),
-                                EventStore::EventMessage.new(:some_property => 'test2') ] }
+                   :events => [ Euston::EventStore::EventMessage.new(:some_property => 'test'),
+                                Euston::EventStore::EventMessage.new(:some_property => 'test2') ] }
 
-      EventStore::Commit.new(defaults.merge options)
+      Euston::EventStore::Commit.new(defaults.merge options)
     end
 
     def next_attempt(attempt)
-      EventStore::Commit.new(:stream_id => attempt.stream_id,
-                             :stream_revision => attempt.stream_revision + 2,
-                             :commit_id => uuid.generate,
-                             :commit_sequence => attempt.commit_sequence + 1,
-                             :commit_timestamp => attempt.commit_timestamp,
-                             :headers => {},
-                             :events => [ EventStore::EventMessage.new(:some_property => 'Another test'),
-                                          EventStore::EventMessage.new(:some_property => 'Another test2') ])
+      Euston::EventStore::Commit.new(:stream_id => attempt.stream_id,
+                                     :stream_revision => attempt.stream_revision + 2,
+                                     :commit_id => uuid.generate,
+                                     :commit_sequence => attempt.commit_sequence + 1,
+                                     :commit_timestamp => attempt.commit_timestamp,
+                                     :headers => {},
+                                     :events => [ Euston::EventStore::EventMessage.new(:some_property => 'Another test'),
+                                                  Euston::EventStore::EventMessage.new(:some_property => 'Another test2') ])
     end
   end
 end

@@ -1,10 +1,12 @@
-module EventStore
-  class SimpleMessage
-    def initialize
-      @contents = []
-    end
+module Euston
+  module EventStore
+    class SimpleMessage
+      def initialize
+        @contents = []
+      end
 
-    attr_accessor :id, :created, :value, :count
-    attr_reader :contents
+      attr_accessor :id, :created, :value, :count
+      attr_reader :contents
+    end
   end
 end

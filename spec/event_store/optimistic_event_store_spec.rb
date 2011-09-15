@@ -1,10 +1,10 @@
 require File.join(File.dirname(__FILE__), '..', 'spec_helper')
 
-describe ::EventStore do
-  let(:uuid) { UUID.new }
+describe Euston::EventStore do
+  let(:uuid) { Uuid }
   let(:stream_id) { uuid.generate }
   let(:persistence) { double('persistence').as_null_object }
-  let(:store) { EventStore::OptimisticEventStore.new persistence }
+  let(:store) { Euston::EventStore::OptimisticEventStore.new persistence }
 
   after { stream_id = uuid.generate }
 
@@ -25,7 +25,7 @@ describe ::EventStore do
       before do
         persistence.stub(:get_from).with({ :stream_id => stream_id,
                                            :min_revision => 0,
-                                           :max_revision => EventStore::FIXNUM_MAX }) { [] }
+                                           :max_revision => Euston::EventStore::FIXNUM_MAX }) { [] }
 
         @stream = store.open_stream :stream_id => stream_id, :min_revision => 0, :max_revision => 0
       end
@@ -45,18 +45,18 @@ describe ::EventStore do
       before do
         persistence.stub(:get_from).with({ :stream_id => stream_id,
                                            :min_revision => min_revision,
-                                           :max_revision => EventStore::FIXNUM_MAX }) { [] }
+                                           :max_revision => Euston::EventStore::FIXNUM_MAX }) { [] }
 
         begin
           store.open_stream :stream_id => stream_id,
                             :min_revision => min_revision,
-                            :max_revision => EventStore::FIXNUM_MAX
+                            :max_revision => Euston::EventStore::FIXNUM_MAX
         rescue Exception => e
           @caught = e
         end
       end
 
-      it('throws a StreamNotFoundError') { @caught.should be_an(EventStore::StreamNotFoundError)  }
+      it('throws a StreamNotFoundError') { @caught.should be_an(Euston::EventStore::StreamNotFoundError)  }
     end
 
     context 'when opening a populated stream' do
@@ -100,8 +100,8 @@ describe ::EventStore do
 
     context 'when opening a populated stream from a snapshot' do
       let(:min_revision) { 42 }
-      let(:max_revision) { EventStore::FIXNUM_MAX }
-      let(:snapshot) { EventStore::Snapshot.new stream_id, min_revision, 'snapshot' }
+      let(:max_revision) { Euston::EventStore::FIXNUM_MAX }
+      let(:snapshot) { Euston::EventStore::Snapshot.new stream_id, min_revision, 'snapshot' }
       let(:committed) { [ commit(:stream_revision => min_revision, :commit_sequence => 0) ] }
 
       before do
@@ -119,17 +119,17 @@ describe ::EventStore do
     context 'when opening a stream from a snapshot that is at the revision of the stream head' do
       let(:head_stream_revision) { 42 }
       let(:head_commit_sequence) { 15 }
-      let(:snapshot) { EventStore::Snapshot.new stream_id, head_stream_revision, 'snapshot' }
-      let(:committed) { EventStore::ArrayEnumerationCounter.new [ commit(:stream_revision => head_stream_revision,
+      let(:snapshot) { Euston::EventStore::Snapshot.new stream_id, head_stream_revision, 'snapshot' }
+      let(:committed) { Euston::EventStore::ArrayEnumerationCounter.new [ commit(:stream_revision => head_stream_revision,
                                                                          :commit_sequence => head_commit_sequence) ] }
 
       before do
         persistence.stub(:get_from).with({ :stream_id => stream_id,
                                            :min_revision => head_stream_revision,
-                                           :max_revision => EventStore::FIXNUM_MAX }) { committed }
+                                           :max_revision => Euston::EventStore::FIXNUM_MAX }) { committed }
 
         @stream = store.open_stream :snapshot => snapshot,
-                                    :max_revision => EventStore::FIXNUM_MAX
+                                    :max_revision => Euston::EventStore::FIXNUM_MAX
       end
 
       it('returns a stream with the correct stream identifier') { @stream.stream_id.should == stream_id }
@@ -144,9 +144,9 @@ describe ::EventStore do
       before do
         persistence.stub(:get_from).with({ :stream_id => stream_id,
                                            :min_revision => 0,
-                                           :max_revision => EventStore::FIXNUM_MAX }) { @invoked = true; [] }
+                                           :max_revision => Euston::EventStore::FIXNUM_MAX }) { @invoked = true; [] }
 
-        store.get_from stream_id, 0, EventStore::FIXNUM_MAX
+        store.get_from stream_id, 0, Euston::EventStore::FIXNUM_MAX
       end
 
       it('passes a revision range to the persistence infrastructure') { @invoked.should be_true }
@@ -158,7 +158,7 @@ describe ::EventStore do
       before do
         persistence.stub(:get_from).with({ :stream_id => stream_id,
                                            :min_revision => 0,
-                                           :max_revision => EventStore::FIXNUM_MAX }) { @invoked = true; committed }
+                                           :max_revision => Euston::EventStore::FIXNUM_MAX }) { @invoked = true; committed }
 
         store.open_stream :stream_id => stream_id,
                           :min_revision => 0,
@@ -169,13 +169,13 @@ describe ::EventStore do
     end
 
     context 'when reading from a snapshot up to revision zero' do
-      let(:snapshot) { EventStore::Snapshot.new stream_id, 1, 'snapshot' }
+      let(:snapshot) { Euston::EventStore::Snapshot.new stream_id, 1, 'snapshot' }
       let(:committed) { [ commit ] }
 
       before do
         persistence.stub(:get_from).with({ :stream_id => stream_id,
                                            :min_revision => snapshot.stream_revision,
-                                           :max_revision => EventStore::FIXNUM_MAX }) { @invoked = true; committed }
+                                           :max_revision => Euston::EventStore::FIXNUM_MAX }) { @invoked = true; committed }
 
         store.open_stream :snapshot => snapshot,
                           :max_revision => 0
@@ -285,8 +285,8 @@ describe ::EventStore do
   def commit(options = {})
     defaults = { :stream_id => stream_id,
                  :commit_id => uuid.generate,
-                 :events => [ EventStore::EventMessage.new ]}
+                 :events => [ Euston::EventStore::EventMessage.new ]}
 
-    EventStore::Commit.new(defaults.merge options)
+    Euston::EventStore::Commit.new(defaults.merge options)
   end
 end

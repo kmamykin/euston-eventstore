@@ -1,7 +1,7 @@
 require File.join(File.dirname(__FILE__), '..', '..', 'spec_helper')
 
-describe ::EventStore do
-  let(:uuid) { UUID.new }
+describe Euston::EventStore do
+  let(:uuid) { Uuid }
 
   describe 'synchronous dispatcher' do
     let(:bus) { stub('bus').as_null_object }
@@ -16,7 +16,7 @@ describe ::EventStore do
 
         @dispatched_commits = []
 
-        @dispatcher = EventStore::Dispatcher::SynchronousDispatcher.new(persistence) do |c|
+        @dispatcher = Euston::EventStore::Dispatcher::SynchronousDispatcher.new(persistence) do |c|
           @dispatched_commits << c
         end
 
@@ -33,7 +33,7 @@ describe ::EventStore do
                    :commit_id => uuid.generate,
                    :commit_sequence => 0 }
 
-      EventStore::Commit.new(defaults.merge options)
+      Euston::EventStore::Commit.new(defaults.merge options)
     end
   end
 end
