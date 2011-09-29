@@ -1,5 +1,3 @@
-require File.join(File.dirname(__FILE__), '..', 'spec_helper')
-
 describe Euston::EventStore do
   let(:uuid) { Uuid }
   let(:stream_id) { uuid.generate }
