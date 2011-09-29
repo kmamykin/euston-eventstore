@@ -65,11 +65,10 @@ end
 #
 #############################################################################
 
-default_rspec_opts = %w[--colour --format Fuubar]
-
 desc "Run all examples"
 RSpec::Core::RakeTask.new(:spec) do |t|
-  t.rspec_opts = default_rspec_opts
+  t.rspec_opts = ['-r ./spec/spec_helper.rb', '--colour', '--format Fuubar']
+  t.pattern = 'spec/**/*_spec.rb'
 end
 
 #############################################################################
