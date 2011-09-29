@@ -8,6 +8,8 @@ module Euston
           included do
             alias_method :original_initialize, :initialize
             alias_method :initialize, :mongo_initialize
+            alias_method :original_to_hash, :to_hash
+            alias_method :to_hash, :to_mongo_hash
           end
 
           class << self
@@ -36,33 +38,31 @@ module Euston
 
           attr_reader :dispatched
 
-          def to_hash
-            {
-              :_id => { :stream_id => stream_id, :commit_sequence => commit_sequence },
-              :commit_id => commit_id,
-              :commit_timestamp => commit_timestamp.to_f,
-              :dispatched => dispatched || false,
-              :events => events.map { |e| e.to_hash },
-              :headers => headers
-            }
+          def to_mongo_hash
+            hash = original_to_hash
+            hash[:_id] = { :stream_id => hash.delete(:stream_id), :commit_sequence => hash.delete(:commit_sequence) }
+            hash.delete :stream_revision
+            hash.delete :commit_sequence
+            hash[:dispatched] ||= false
+            hash[:events] = hash[:events].map { |e| e.to_hash }
+            hash[:commit_timestamp] = hash[:commit_timestamp].to_f
+            hash
           end
 
           def to_mongo_commit
             mongo_stream_revision = stream_revision - (events.length - 1)
-            mongo_events = events.map do |e|
-              hash = { :stream_revision => mongo_stream_revision, :payload => e.to_hash }
+
+            hash = to_mongo_hash
+
+            hash[:events] = events.map do |e|
+              event_hash = { :stream_revision => mongo_stream_revision, :payload => e.to_hash }
               mongo_stream_revision += 1
-              hash
+              event_hash
             end
 
-            {
-              :_id => { :stream_id => stream_id, :commit_sequence => commit_sequence },
-              :commit_id => commit_id,
-              :commit_timestamp => commit_timestamp.to_f,
-              :headers => headers,
-              :events => mongo_events,
-              :dispatched => false
-            }
+            hash[:commit_timestamp_for_humans] = Time.at(hash[:commit_timestamp]).utc
+
+            hash
           end
 
           def to_id_query
