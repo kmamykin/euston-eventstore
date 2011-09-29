@@ -31,7 +31,7 @@ module Euston
                               :max_revision => max_revision).to_enum
       end
 
-      def get_snapshot(stream_id, max_revision)
+      def get_snapshot(stream_id, max_revision = 0)
         @persistence.get_snapshot stream_id, validate_max_revision(max_revision)
       end
 
