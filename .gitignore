@@ -27,6 +27,7 @@ tmtags
 coverage
 rdoc
 pkg
+Gemfile.lock
 
 ## PROJECT::SPECIFIC
 mongo.log
