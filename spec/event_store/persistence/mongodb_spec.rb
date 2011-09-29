@@ -269,6 +269,7 @@ describe Euston::EventStore do
       end
 
       it('returns all commits on or after the point in time specified') { @committed.should have(4).items }
+      it('returns commits with the same accuracy of timestamp') { @committed[0].commit_timestamp.should == first.commit_timestamp.to_f }
     end
 
     def new_attempt(options = {})
