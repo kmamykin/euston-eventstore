@@ -11,7 +11,7 @@ module Euston
 
               id = hash['_id']
 
-              Euston::EventStore::Snapshot.new id['stream_id'], id['stream_revision'], hash['payload']
+              Euston::EventStore::Snapshot.new id['stream_id'], id['stream_revision'], hash['payload'].recursive__symbolize__keys!
             end
           end
 

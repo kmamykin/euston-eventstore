@@ -4,6 +4,7 @@ module Euston
       def initialize(options)
         @persistence = options[:persistence]
         @committed_events = []
+        @committed_headers = {}
         @uncommitted_events = []
         @uncommitted_headers = {}
         @commit_sequence = 0
@@ -30,7 +31,7 @@ module Euston
         end
       end
 
-      attr_reader :stream_id, :stream_revision, :commit_sequence, :committed_events, :uncommitted_events, :uncommitted_headers
+      attr_reader :stream_id, :stream_revision, :commit_sequence, :committed_events, :committed_headers, :uncommitted_events, :uncommitted_headers
 
       def <<(event)
         @uncommitted_events << event unless event.nil? || event.body.nil?
@@ -84,6 +85,7 @@ module Euston
         commits.each do |commit|
           @identifiers << commit.commit_id
           @commit_sequence = commit.commit_sequence
+          @committed_headers.merge! commit.headers || {}
 
           current_revision = commit.stream_revision - commit.events.length + 1
 
