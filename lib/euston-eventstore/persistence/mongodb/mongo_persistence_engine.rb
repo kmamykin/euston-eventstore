@@ -7,9 +7,9 @@ module Euston
             @store = store
 
             collection_names = store.collection_names
-            store.create_collection 'commits'  unless collection_names.include? 'commits'    # :safe = true
-            store.create_collection 'snapshot' unless collection_names.include? 'snapshot'   # :safe = false
-            store.create_collection 'streams'  unless collection_names.include? 'streams'    # :safe = false
+            store.create_collection 'commits'   unless collection_names.include? 'commits'
+            store.create_collection 'snapshots' unless collection_names.include? 'snapshots'
+            store.create_collection 'streams'   unless collection_names.include? 'streams'
           end
 
           def add_snapshot(snapshot)
