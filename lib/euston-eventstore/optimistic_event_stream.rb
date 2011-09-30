@@ -85,7 +85,7 @@ module Euston
         commits.each do |commit|
           @identifiers << commit.commit_id
           @commit_sequence = commit.commit_sequence
-          @committed_headers.merge! commit.headers || {}
+          @committed_headers.merge! commit.to_hash[:headers] || {}
 
           current_revision = commit.stream_revision - commit.events.length + 1
 
