@@ -22,7 +22,8 @@ module Euston
               doc = { 'headers' => mongo_snapshot[:headers],
                       'payload' => mongo_snapshot[:payload] }.merge(id)
 
-              persisted_snapshots.update id, doc, { :upsert => true }
+              # jmongo doesn't currently honour the safe mode on the connection, so we have to specify safe here
+              persisted_snapshots.update id, doc, :upsert => true, :safe => true
 
               id = { '_id' => snapshot.stream_id }
 
@@ -36,7 +37,8 @@ module Euston
               modifiers = { '$set' => { 'snapshot_revision' => snapshot.stream_revision,
                                         'unsnapshotted'     => stream_head.head_revision - snapshot.stream_revision } }
 
-              persisted_stream_heads.update id, modifiers
+              # jmongo doesn't currently honour the safe mode on the connection, so we have to specify safe here
+              persisted_stream_heads.update id, modifiers, :safe => true
               return true
             rescue Mongo::OperationFailure
               return false
@@ -48,8 +50,8 @@ module Euston
               commit = attempt.to_mongo_commit
 
               begin
-                # for concurrency / duplicate commit detection safe mode is required
-                persisted_commits.insert commit
+                # jmongo doesn't currently honour the safe mode on the connection, so we have to specify safe here
+                persisted_commits.insert commit, :safe => true
 
                 update_stream_head_async attempt.stream_id, attempt.stream_revision, attempt.events.length
               rescue Mongo::OperationFailure, NativeException => e
@@ -129,7 +131,8 @@ module Euston
 
           def mark_commit_as_dispatched(commit)
             try_mongo do
-              persisted_commits.update commit.to_id_query, { '$set' => { 'dispatched' => true }}
+              # jmongo doesn't currently honour the safe mode on the connection, so we have to specify safe here
+              persisted_commits.update commit.to_id_query, { '$set' => { 'dispatched' => true }}, :safe => true
             end
           end
 
@@ -159,10 +162,12 @@ module Euston
 
           def update_stream_head_async(stream_id, stream_revision, events_count)
             Thread.fork do
-              persisted_stream_heads.update(
-                { '_id' => stream_id },
-                { '$set' => { 'head_revision' => stream_revision }, '$inc' => { 'snapshot_revision' => 0, 'unsnapshotted' => events_count } },
-                { :upsert  => true })
+              # jmongo doesn't currently honour the safe mode on the connection, so we have to specify safe here
+              id  = { '_id' => stream_id }
+              doc = { '$set' => { 'head_revision' => stream_revision },
+                      '$inc' => { 'snapshot_revision' => 0, 'unsnapshotted' => events_count } }
+
+              persisted_stream_heads.update id, doc, :upsert => true, :safe => true
             end
           end
 
