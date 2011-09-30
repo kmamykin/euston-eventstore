@@ -179,7 +179,7 @@ describe Euston::EventStore do
 
     context 'when retrieving a snapshot' do
       let(:too_far_back) { Euston::EventStore::Snapshot.new stream_id, 1, {} }
-      let(:correct) { Euston::EventStore::Snapshot.new stream_id, 3, { 'key' => 'value' } }
+      let(:correct) { Euston::EventStore::Snapshot.new stream_id, 3, { :key => 'value' } }
       let(:too_far_forward) { Euston::EventStore::Snapshot.new stream_id, 5, {} }
       let(:commit1) { new_attempt }
       let(:commit2) { next_attempt commit1 }
