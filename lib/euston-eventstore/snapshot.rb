@@ -6,7 +6,7 @@ module Euston
         @stream_id = stream_id
         @stream_revision = stream_revision
         @payload = payload
-        @headers = headers
+        @headers = headers || {}
       end
 
       # Gets the value which uniquely identifies the stream to which the snapshot applies.
