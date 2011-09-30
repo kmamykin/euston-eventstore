@@ -17,12 +17,12 @@ module Euston
         class MongoPersistenceFactory
           def self.build
             config = Config.instance
-            connection = ::Mongo::Connection.new(config.host, config.port, config.options)
+            options = config.options
+            options.merge!(:logger => config.logger) unless config.logger.nil?
 
-            MongoPersistenceEngine.new connection.db(config.database)
-          end
-          def self.build_with_proxy()
-            ZmqPersistenceEngineProxy.new(build.init)
+            @connection ||= Mongo::Connection.from_uri config.uri, options
+
+            MongoPersistenceEngine.new @connection.db(config.database)
           end
         end
       end

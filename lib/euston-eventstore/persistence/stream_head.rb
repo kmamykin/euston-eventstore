@@ -3,7 +3,7 @@ module Euston
     module Persistence
       # Indicates the most recent information representing the head of a given stream.
       class StreamHead
-        def initialize(stream_id, head_revision, snapshot_revision)
+        def initialize stream_id, head_revision, snapshot_revision
           @stream_id = stream_id
           @head_revision = head_revision
           @snapshot_revision = snapshot_revision

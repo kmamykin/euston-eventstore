@@ -7,19 +7,15 @@ module Euston
         class Config
           include ::Singleton
 
-          def host
-            @host ||= 'localhost'
-          end
-
-          def port
-            @port ||= 27017
+          def uri
+            @uri ||= 'mongodb://0.0.0.0:27017/'
           end
 
           def options
-            @options ||= { :safe => { :fsync => true }}
+            @options ||= { :safe => true, :fsync => true, :journal => true }
           end
 
-          attr_writer :host, :port, :options
+          attr_writer :uri, :options
           attr_accessor :database, :logger
         end
       end
