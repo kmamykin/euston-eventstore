@@ -49,7 +49,8 @@ module Euston
 
               begin
                 # for concurrency / duplicate commit detection safe mode is required
-                persisted_commits.insert commit, :safe => true
+                persisted_commits.insert commit
+
                 update_stream_head_async attempt.stream_id, attempt.stream_revision, attempt.events.length
               rescue Mongo::OperationFailure, NativeException => e
                 raise(Euston::EventStore::StorageError, e.message, e.backtrace) unless e.message.include? CONCURRENCY_EXCEPTION
