@@ -17,20 +17,26 @@ module Euston
 
             begin
               mongo_snapshot = snapshot.is_a?(Hash) ? snapshot : snapshot.to_hash
-              id = { '_id' => mongo_snapshot[:_id] }
 
-              persisted_snapshots.update(id, { 'payload' => mongo_snapshot[:payload] }.merge(id), { :upsert => true })
+              id  = { '_id'     => mongo_snapshot[:_id] }
+              doc = { 'headers' => mongo_snapshot[:headers],
+                      'payload' => mongo_snapshot[:payload] }.merge(id)
+
+              persisted_snapshots.update id, doc, { :upsert => true }
+
+              id = { '_id' => snapshot.stream_id }
 
               # jmongo's find_one is broken
               if defined?(JMongo)
-                stream_head = MongoStreamHead.from_hash persisted_stream_heads.find({ '_id' => snapshot.stream_id }).to_a.first
+                stream_head = MongoStreamHead.from_hash persisted_stream_heads.find(id).to_a.first
               else
-                stream_head = MongoStreamHead.from_hash persisted_stream_heads.find_one({ '_id' => snapshot.stream_id })
+                stream_head = MongoStreamHead.from_hash persisted_stream_heads.find_one(id)
               end
 
-              unsnapshotted = stream_head.head_revision - snapshot.stream_revision
-              persisted_stream_heads.update({ '_id' => snapshot.stream_id },
-                                            { '$set' => { 'snapshot_revision' => snapshot.stream_revision, 'unsnapshotted' => unsnapshotted } })
+              modifiers = { '$set' => { 'snapshot_revision' => snapshot.stream_revision,
+                                        'unsnapshotted'     => stream_head.head_revision - snapshot.stream_revision } }
+
+              persisted_stream_heads.update id, modifiers
               return true
             rescue Mongo::OperationFailure
               return false

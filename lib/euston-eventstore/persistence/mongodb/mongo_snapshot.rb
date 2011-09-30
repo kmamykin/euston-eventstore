@@ -11,13 +11,17 @@ module Euston
 
               id = hash['_id']
 
-              Euston::EventStore::Snapshot.new id['stream_id'], id['stream_revision'], hash['payload'].recursive__symbolize__keys!
+              Euston::EventStore::Snapshot.new id['stream_id'],
+                                               id['stream_revision'],
+                                               hash['payload'].recursive__symbolize__keys!,
+                                               hash['headers'].recursive__symbolize__keys!
             end
           end
 
           def to_hash
             {
               :_id => { :stream_id => stream_id, :stream_revision => stream_revision },
+              :headers => headers,
               :payload => payload.recursive_stringify_symbol_values!
             }
           end
