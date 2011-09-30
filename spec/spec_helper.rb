@@ -28,7 +28,7 @@ require 'support/array_enumeration_counter'
 
 mongo_config = Euston::EventStore::Persistence::Mongodb::Config.instance
 mongo_config.database = 'event_store_tests'
-mongo_config.options = { :fsync => true, :journal => true } #, :logger => Logger.new(STDOUT)
+mongo_config.options = { :safe => true, :fsync => true, :journal => true } #, :logger => Logger.new(STDOUT)
 
 RSpec.configure do |config|
   config.fail_fast = true
