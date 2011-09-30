@@ -6,7 +6,8 @@ module Euston
           extend ::ActiveSupport::Concern
 
           class << self
-            def from_hash(hash)
+            def from_hash hash
+              return nil if hash.nil?
               Euston::EventStore::Persistence::StreamHead.new hash['_id'], hash['head_revision'], hash['snapshot_revision']
             end
           end
