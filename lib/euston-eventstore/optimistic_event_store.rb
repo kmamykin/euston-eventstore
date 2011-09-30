@@ -39,6 +39,13 @@ module Euston
         @persistence.get_streams_to_snapshot max_threshold
       end
 
+      def get_snapshot_stream_pair stream_id
+        snapshot    = get_snapshot stream_id
+        stream      = open_stream :stream_id => stream_id, :snapshot => snapshot
+
+        SnapshotStreamPair.new snapshot, stream
+      end
+
       def open_stream(options)
         options = { :stream_id => nil,
                     :min_revision => 0,
