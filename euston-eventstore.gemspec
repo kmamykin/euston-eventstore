@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'euston-eventstore'
-  s.version     = '1.0.4'
-  s.date        = '2011-09-15'
+  s.version     = '1.1.0'
+  s.date        = '2011-10-03'
   s.platform    = RUBY_PLATFORM.to_s == 'java' ? 'java' : Gem::Platform::RUBY
   s.authors     = ['Lee Henson', 'Guy Boertje']
   s.email       = ['lee.m.henson@gmail.com', 'guyboertje@gmail.com']
@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.homepage    = 'http://github.com/leemhenson/euston-eventstore'
   # = MANIFEST =
   s.files = %w[
+    Gemfile
     Rakefile
     euston-eventstore.gemspec
     lib/euston-eventstore.rb
@@ -31,7 +32,9 @@ Gem::Specification.new do |s|
     lib/euston-eventstore/persistence/mongodb/mongo_snapshot.rb
     lib/euston-eventstore/persistence/mongodb/mongo_stream_head.rb
     lib/euston-eventstore/persistence/stream_head.rb
+    lib/euston-eventstore/repository.rb
     lib/euston-eventstore/snapshot.rb
+    lib/euston-eventstore/snapshot_stream_pair.rb
     lib/euston-eventstore/version.rb
     spec/event_store/dispatcher/asynchronous_dispatcher_spec.rb
     spec/event_store/dispatcher/synchronous_dispatcher_spec.rb
@@ -48,11 +51,12 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
 
   s.add_dependency 'activesupport',             '~> 3.0.9'
+  s.add_dependency 'euston',                    '~> 1.1.0'
   s.add_dependency 'hash-keys',                 '~> 1.0.0'
 
   if RUBY_PLATFORM.to_s == 'java'
     s.add_dependency 'json-jruby',              '~> 1.5.0'
-    s.add_dependency 'jmongo',                  '~> 1.0.0'
+    s.add_dependency 'jmongo',                  '~> 1.1.0'
   else
     s.add_dependency 'bson',                    '~> 1.3.1'
     s.add_dependency 'bson_ext',                '~> 1.3.1'
