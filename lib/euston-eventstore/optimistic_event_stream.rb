@@ -5,6 +5,7 @@ module Euston
         @persistence = options[:persistence]
         @committed_events = []
         @committed_headers = {}
+        @uncommitted_commands = []
         @uncommitted_events = []
         @uncommitted_headers = {}
         @commit_sequence = 0
@@ -31,13 +32,17 @@ module Euston
         end
       end
 
-      attr_reader :stream_id, :stream_revision, :commit_sequence, :committed_events, :committed_headers, :uncommitted_events, :uncommitted_headers
+      attr_reader :stream_id, :stream_revision, :commit_sequence, :committed_events, :committed_headers, :uncommitted_commands, :uncommitted_events, :uncommitted_headers
 
-      def <<(event)
-        @uncommitted_events << event unless event.nil? || event.body.nil?
+      def <<(message)
+        return if message.nil? || message.body.nil?
+
+        @uncommitted_commands << message if message.is_a? CommandMessage
+        @uncommitted_events   << message if message.is_a? EventMessage
       end
 
       def clear_changes
+        @uncommitted_commands = []
         @uncommitted_events = []
         @uncommitted_headers = {}
       end
@@ -66,11 +71,12 @@ module Euston
                                        :commit_sequence => commit_sequence + 1,
                                        :commit_timestamp => Time.now.utc,
                                        :headers => uncommitted_headers,
-                                       :events => uncommitted_events
+                                       :events => uncommitted_events,
+                                       :commands => uncommitted_commands
       end
 
       def has_changes
-        !uncommitted_events.empty?
+        !uncommitted_commands.empty? || !uncommitted_events.empty?
       end
 
       def persist_changes(commit_id)

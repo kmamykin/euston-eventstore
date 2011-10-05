@@ -3,7 +3,7 @@ module Euston
     module Persistence
       module Mongodb
         module MongoCommit
-          extend ::ActiveSupport::Concern
+          extend ActiveSupport::Concern
 
           included do
             alias_method :original_initialize, :initialize
@@ -18,8 +18,10 @@ module Euston
 
               id = hash['_id']
               events = hash['events'].sort_by { |e| e["stream_revision"] }.to_a
+              commands = hash['commands']
               stream_revision = events.last['stream_revision']
-              events = events.map { |e| Euston::EventStore::Persistence::Mongodb::MongoEventMessage.from_hash e['payload'] }
+              events = events.map { |e| MongoEventMessage.from_hash e['payload'] }
+              commands = commands.map { |c| MongoCommandMessage.from_hash c['payload'] }
 
               Euston::EventStore::Commit.new :stream_id => id['stream_id'],
                                              :stream_revision => stream_revision,
@@ -27,7 +29,8 @@ module Euston
                                              :commit_sequence => id['commit_sequence'],
                                              :commit_timestamp => hash['commit_timestamp'],
                                              :headers => hash['headers'].recursive_symbolize_keys!,
-                                             :events => events
+                                             :events => events,
+                                             :commands => commands
             end
           end
 
@@ -45,6 +48,7 @@ module Euston
             hash.delete :commit_sequence
             hash[:dispatched] ||= false
             hash[:events] = hash[:events].map { |e| e.to_hash }
+            hash[:commands] = hash[:commands].map { |c| c.to_hash }
             hash[:commit_timestamp] = hash[:commit_timestamp].to_f
             hash
           end
@@ -58,6 +62,10 @@ module Euston
               event_hash = { :stream_revision => mongo_stream_revision, :payload => e.to_hash }
               mongo_stream_revision += 1
               event_hash
+            end
+
+            hash[:commands] = commands.map do |c|
+              c.to_hash
             end
 
             hash[:commit_timestamp_for_humans] = Time.at(hash[:commit_timestamp]).utc

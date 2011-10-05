@@ -11,7 +11,8 @@ module Euston
           :commit_sequence => 1,
           :commit_timestamp => Time.now.utc,
           :headers => OpenStruct.new,
-          :events => []
+          :events => [],
+          :commands => []
         }
         values = defaults.merge hash
         defaults.keys.each { |key| instance_variable_set "@#{key}", values[key] }
@@ -25,7 +26,8 @@ module Euston
           :commit_sequence => commit_sequence,
           :commit_timestamp => commit_timestamp,
           :headers => headers.is_a?(OpenStruct) ? headers.instance_variable_get(:@table) : headers,
-          :events => events
+          :events => events,
+          :commands => commands
         }
       end
       # Gets the value which uniquely identifies the stream to which the commit belongs.
@@ -48,6 +50,9 @@ module Euston
 
       # Gets the collection of event messages to be committed as a single unit.
       attr_reader :events
+
+      # Gets the collection of command messages to be committed as a single unit.
+      attr_reader :commands
 
       def ==(other)
         (other.is_a? Commit) && (@stream_id == other.stream_id) && (@commit_id == other.commit_id)
