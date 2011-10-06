@@ -22,23 +22,16 @@ module Euston
               doc = { 'headers' => mongo_snapshot[:headers],
                       'payload' => mongo_snapshot[:payload] }.merge(id)
 
-              # jmongo doesn't currently honour the safe mode on the connection, so we have to specify safe here
-              persisted_snapshots.update id, doc, :upsert => true, :safe => true
+              persisted_snapshots.update id, doc, :upsert => true
 
               id = { '_id' => snapshot.stream_id }
 
-              # jmongo's find_one is broken
-              if defined?(JMongo)
-                stream_head = MongoStreamHead.from_hash persisted_stream_heads.find(id).to_a.first
-              else
-                stream_head = MongoStreamHead.from_hash persisted_stream_heads.find_one(id)
-              end
+              stream_head = MongoStreamHead.from_hash persisted_stream_heads.find_one(id)
 
               modifiers = { '$set' => { 'snapshot_revision' => snapshot.stream_revision,
                                         'unsnapshotted'     => stream_head.head_revision - snapshot.stream_revision } }
 
-              # jmongo doesn't currently honour the safe mode on the connection, so we have to specify safe here
-              persisted_stream_heads.update id, modifiers, :safe => true
+              persisted_stream_heads.update id, modifiers
               return true
             rescue Mongo::OperationFailure
               return false
@@ -50,19 +43,13 @@ module Euston
               commit = attempt.to_mongo_commit
 
               begin
-                # jmongo doesn't currently honour the safe mode on the connection, so we have to specify safe here
-                persisted_commits.insert commit, :safe => true
+                persisted_commits.insert commit
 
                 update_stream_head_async attempt.stream_id, attempt.stream_revision, attempt.events.length
               rescue Mongo::OperationFailure, NativeException => e
                 raise(Euston::EventStore::StorageError, e.message, e.backtrace) unless e.message.include? CONCURRENCY_EXCEPTION
 
-                # jmongo's find_one is broken
-                if defined?(JMongo)
-                  committed = persisted_commits.find(attempt.to_id_query).to_a.first
-                else
-                  committed = persisted_commits.find_one(attempt.to_id_query)
-                end
+                committed = persisted_commits.find_one(attempt.to_id_query)
 
                 raise Euston::EventStore::DuplicateCommitError if !committed.nil? && committed['commit_id'] == attempt.commit_id
                 raise Euston::EventStore::ConcurrencyError
@@ -131,8 +118,7 @@ module Euston
 
           def mark_commit_as_dispatched(commit)
             try_mongo do
-              # jmongo doesn't currently honour the safe mode on the connection, so we have to specify safe here
-              persisted_commits.update commit.to_id_query, { '$set' => { 'dispatched' => true }}, :safe => true
+              persisted_commits.update commit.to_id_query, { '$set' => { 'dispatched' => true }}
             end
           end
 
@@ -162,12 +148,11 @@ module Euston
 
           def update_stream_head_async(stream_id, stream_revision, events_count)
             Thread.fork do
-              # jmongo doesn't currently honour the safe mode on the connection, so we have to specify safe here
               id  = { '_id' => stream_id }
               doc = { '$set' => { 'head_revision' => stream_revision },
                       '$inc' => { 'snapshot_revision' => 0, 'unsnapshotted' => events_count } }
 
-              persisted_stream_heads.update id, doc, :upsert => true, :safe => true
+              persisted_stream_heads.update id, doc, :upsert => true
             end
           end
 

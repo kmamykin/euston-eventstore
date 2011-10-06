@@ -17,7 +17,7 @@ module Euston
         class MongoPersistenceFactory
           def self.build
             config = Config.instance
-            options = config.options
+            options = {}
             options.merge!(:logger => config.logger) unless config.logger.nil?
 
             @connection ||= Mongo::Connection.from_uri config.uri, options

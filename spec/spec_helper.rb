@@ -28,14 +28,13 @@ require 'support/array_enumeration_counter'
 
 mongo_config = Euston::EventStore::Persistence::Mongodb::Config.instance
 mongo_config.database = 'event_store_tests'
-mongo_config.options = { :safe => true, :fsync => true, :journal => true } #, :logger => Logger.new(STDOUT)
 
 RSpec.configure do |config|
   config.fail_fast = true
 
   config.before :each do
-    connection = Mongo::Connection.from_uri 'mongodb://0.0.0.0:27017/', mongo_config.options
-    db = connection.db(mongo_config.database)
+    connection = Mongo::Connection.from_uri mongo_config.uri
+    db = connection.db mongo_config.database
     db.collections.select { |c| c.name !~ /system/ }.each { |c| db.drop_collection c.name }
   end
 end
