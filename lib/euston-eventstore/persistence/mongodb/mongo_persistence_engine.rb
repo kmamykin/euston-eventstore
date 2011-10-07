@@ -122,6 +122,17 @@ module Euston
             end
           end
 
+          def mark_commits_as_dispatched(commits)
+            return if commits.empty?
+
+            try_mongo do
+              id_queries = commits.map { |c| c.to_id_query }
+              query = { '$or' => id_queries }
+
+              persisted_commits.update query, { '$set' => { 'dispatched' => true }}, :multi => true
+            end
+          end
+
           private
 
           def persisted_commits
