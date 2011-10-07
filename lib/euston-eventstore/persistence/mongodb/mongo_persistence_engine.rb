@@ -69,7 +69,7 @@ module Euston
                 order = [ 'events.stream_revision', Mongo::ASCENDING ]
               end
 
-              persisted_commits.find(query).sort(order).to_a.map { |hash| MongoCommit.from_hash hash }
+              persisted_commits.find(query, :sort => order).map { |hash| MongoCommit.from_hash hash }
             end
           end
 
@@ -79,7 +79,7 @@ module Euston
                                    '$lte' => { 'stream_id' => stream_id, 'stream_revision' => max_revision } } }
               order = [ '_id', Mongo::DESCENDING ]
 
-              persisted_snapshots.find(query).sort(order).limit(1).to_a.map { |hash| MongoSnapshot::from_hash hash }.first
+              persisted_snapshots.find(query, :sort => order).limit(1).map { |hash| MongoSnapshot::from_hash hash }.first
             end
           end
 
@@ -88,7 +88,7 @@ module Euston
               query = { 'unsnapshotted' => { '$gte' => max_threshold } }
               order = [ 'unsnapshotted', Mongo::DESCENDING ]
 
-              persisted_stream_heads.find(query).sort(order).to_a.map { |hash| MongoStreamHead.from_hash hash }
+              persisted_stream_heads.find(query, :sort => order).map { |hash| MongoStreamHead.from_hash hash }
             end
           end
 
@@ -97,7 +97,7 @@ module Euston
               query = { 'dispatched' => false }
               order = [ 'commit_timestamp', Mongo::ASCENDING ]
 
-              persisted_commits.find(query).sort(order).to_a.map { |hash| MongoCommit.from_hash hash }
+              persisted_commits.find(query, :sort => order).map { |hash| MongoCommit.from_hash hash }
             end
           end
 
