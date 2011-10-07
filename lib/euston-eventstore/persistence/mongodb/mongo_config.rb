@@ -8,7 +8,7 @@ module Euston
           include ::Singleton
 
           def uri
-            @uri ||= 'mongodb://0.0.0.0:27017/?fsync=true;autoconnectretry=true;'
+            @uri ||= 'mongodb://0.0.0.0:27017/?safe=true;fsync=true;w=1;'
           end
 
           attr_writer :uri
