@@ -18,7 +18,7 @@ module Euston
 
               id = hash['_id']
               events = hash['events'].sort_by { |e| e["stream_revision"] }.to_a
-              commands = hash['commands']
+              commands = hash['commands'] || []
               stream_revision = events.last['stream_revision']
               events = events.map { |e| MongoEventMessage.from_hash e['payload'] }
               commands = commands.map { |c| MongoCommandMessage.from_hash c['payload'] }

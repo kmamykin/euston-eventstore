@@ -92,9 +92,11 @@ module Euston
             end
           end
 
-          def get_undispatched_commits
+          def get_undispatched_commits component_id = nil
             try_mongo do
               query = { 'dispatched' => false }
+              query['component_id'] = component_id unless component_id.nil?
+
               order = [ 'commit_timestamp', Mongo::ASCENDING ]
 
               persisted_commits.find(query, :sort => order).map { |hash| MongoCommit.from_hash hash }
@@ -104,6 +106,7 @@ module Euston
           def init
             try_mongo do
               persisted_commits.ensure_index [ ['dispatched', Mongo::ASCENDING],
+                                               ['component_id', Mongo::ASCENDING],
                                                ['commit_timestamp', Mongo::ASCENDING] ], :unique => false, :name => 'dispatched_index'
 
               persisted_commits.ensure_index [ ['_id.stream_id', Mongo::ASCENDING],
@@ -117,9 +120,7 @@ module Euston
           end
 
           def mark_commit_as_dispatched(commit)
-            try_mongo do
-              persisted_commits.update commit.to_id_query, { '$set' => { 'dispatched' => true }}
-            end
+            mark_commits_as_dispatched [commit]
           end
 
           def mark_commits_as_dispatched(commits)
@@ -129,7 +130,23 @@ module Euston
               id_queries = commits.map { |c| c.to_id_query }
               query = { '$or' => id_queries }
 
-              persisted_commits.update query, { '$set' => { 'dispatched' => true }}, :multi => true
+              persisted_commits.update query, { '$set' => { 'dispatched' => true }, '$unset' => { 'component_id' => 1 } }, :multi => true
+            end
+          end
+
+          def take_ownership_of_undispatched_commits component_id
+            try_mongo do
+              new_commits_eligible_for_dispatch  = { 'component_id' => nil,
+                                                     'dispatched'   => false }
+
+              commits_stuck_in_other_components  = { 'component_id'     => { '$ne'  => nil }                                       ,
+                                                     'dispatched'       => false,
+                                                     'commit_timestamp' => Time.now.to_f - 60 }
+
+              query = { '$or'   => [ new_commits_eligible_for_dispatch, commits_stuck_in_other_components ] }
+              doc   = { '$set'  => { 'component_id' => component_id } }
+
+              persisted_commits.update query, doc, :multi => true
             end
           end
 
