@@ -51,7 +51,7 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
 
   s.add_dependency 'activesupport',             '~> 3.0.9'
-  s.add_dependency 'euston',                    '~> 1.1.0'
+  s.add_dependency 'euston',                    '~> 1.2.0'
   s.add_dependency 'hash-keys',                 '~> 1.0.0'
 
   if RUBY_PLATFORM.to_s == 'java'
