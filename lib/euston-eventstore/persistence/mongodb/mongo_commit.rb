@@ -21,7 +21,7 @@ module Euston
               commands = hash['commands'] || []
               stream_revision = events.last['stream_revision']
               events = events.map { |e| MongoEventMessage.from_hash e['payload'] }
-              commands = commands.map { |c| MongoCommandMessage.from_hash c['payload'] }
+              commands = commands.map { |c| MongoCommandMessage.from_hash c }
 
               Euston::EventStore::Commit.new :stream_id => id['stream_id'],
                                              :stream_revision => stream_revision,

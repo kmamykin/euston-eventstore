@@ -6,10 +6,11 @@ module Euston
           extend ActiveSupport::Concern
 
           class << self
-            def from_hash(hash)
-              {}.recursive_symbolize_keys!
-              message = CommandMessage.new hash['body'].recursive_symbolize_keys!
-              message.instance_variable_set :@headers, hash['headers'].recursive_symbolize_keys!
+            def from_hash hash
+              hash.recursive_symbolize_keys!
+
+              message = CommandMessage.new hash[:body]
+              message.instance_variable_set :@headers, hash[:headers]
               message
             end
           end
