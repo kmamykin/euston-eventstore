@@ -3,6 +3,8 @@ module Euston
     module Persistence
       module Mongodb
         class MongoPersistenceEngine
+          include MongoConcurrencyDetection
+
           def initialize(store)
             @store = store
 
@@ -42,17 +44,17 @@ module Euston
             try_mongo do
               commit = attempt.to_mongo_commit
 
-              begin
-                persisted_commits.insert commit
-
-                update_stream_head_async attempt.stream_id, attempt.stream_revision, attempt.events.length
-              rescue Mongo::OperationFailure, NativeException => e
-                raise(Euston::EventStore::StorageError, e.message, e.backtrace) unless e.message.include? CONCURRENCY_EXCEPTION
-
+              on_e11000_error = ->(e) do
                 committed = persisted_commits.find_one(attempt.to_id_query)
-
                 raise Euston::EventStore::DuplicateCommitError if !committed.nil? && committed['commit_id'] == attempt.commit_id
                 raise Euston::EventStore::ConcurrencyError
+              end
+
+              on_other_error = ->(e) { raise EventStore::StorageError, e.message, e.backtrace }
+
+              detect_mongo_concurrency :on_e11000_error => on_e11000_error, :on_other_error => on_other_error do
+                persisted_commits.insert commit
+                update_stream_head_async attempt.stream_id, attempt.stream_revision, attempt.events.length
               end
             end
           end
