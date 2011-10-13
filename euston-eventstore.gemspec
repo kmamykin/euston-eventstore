@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'euston-eventstore'
-  s.version     = '1.2.0'
-  s.date        = '2011-10-12'
+  s.version     = '1.2.1'
+  s.date        = '2011-10-13'
   s.platform    = RUBY_PLATFORM.to_s == 'java' ? 'java' : Gem::Platform::RUBY
   s.authors     = ['Lee Henson', 'Guy Boertje']
   s.email       = ['lee.m.henson@gmail.com', 'guyboertje@gmail.com']
@@ -27,6 +27,7 @@ Gem::Specification.new do |s|
     lib/euston-eventstore/persistence/mongodb/mongo_command_message.rb
     lib/euston-eventstore/persistence/mongodb/mongo_commit.rb
     lib/euston-eventstore/persistence/mongodb/mongo_commit_id.rb
+    lib/euston-eventstore/persistence/mongodb/mongo_concurrency_detection.rb
     lib/euston-eventstore/persistence/mongodb/mongo_config.rb
     lib/euston-eventstore/persistence/mongodb/mongo_event_message.rb
     lib/euston-eventstore/persistence/mongodb/mongo_persistence_engine.rb
