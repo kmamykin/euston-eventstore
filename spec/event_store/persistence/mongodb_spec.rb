@@ -223,34 +223,31 @@ describe Euston::EventStore do
         @persistence.get_streams_to_snapshot(1).detect { |x| x.stream_id == stream_id }.should be_nil }
     end
 
-# Timing issues with this one?
-#
-#    context 'when adding a commit after a snapshot' do
-#      let(:within_threshold) { 2 }
-#      let(:over_threshold) { 3 }
-#      let(:snapshot_data) { { :key => :value } }
-#      let(:oldest) { new_attempt }
-#      let(:oldest2) { next_attempt oldest }
-#      let(:newest) { next_attempt oldest2 }
+   context 'when adding a commit after a snapshot' do
+     let(:within_threshold) { 2 }
+     let(:over_threshold) { 3 }
+     let(:snapshot_data) { { :key => :value } }
+     let(:oldest) { new_attempt }
+     let(:oldest2) { next_attempt oldest }
+     let(:newest) { next_attempt oldest2 }
 
-#      before do
-#        @persistence.commit oldest
-#        @persistence.commit oldest2
+     before do
+       @persistence.commit oldest
+       @persistence.commit oldest2
+       @persistence.add_snapshot Euston::EventStore::Snapshot.new(stream_id, oldest2.stream_revision, snapshot_data)
+       @persistence.commit newest
 
-#        sleep 0.25
+       sleep 0.5  # needed because the stream head update is done asynchronously
+     end
 
-#        @persistence.add_snapshot Euston::EventStore::Snapshot.new(stream_id, oldest2.stream_revision, snapshot_data)
-#        @persistence.commit newest
-#      end
+     it 'finds the stream in the set of streams to be snapshot when within the threshold' do
+       @persistence.get_streams_to_snapshot(within_threshold).detect { |x| x.stream_id == stream_id }.should_not be_nil
+     end
 
-#      it 'finds the stream in the set of streams to be snapshot when within the threshold' do
-#        @persistence.get_streams_to_snapshot(within_threshold).detect { |x| x.stream_id == stream_id }.should_not be_nil
-#      end
-
-#      it 'does not find the stream in the set of stream to be snapshot when over the threshold' do
-#        @persistence.get_streams_to_snapshot(over_threshold).detect { |x| x.stream_id == stream_id }.should be_nil
-#      end
-#    end
+     it 'does not find the stream in the set of stream to be snapshot when over the threshold' do
+       @persistence.get_streams_to_snapshot(over_threshold).detect { |x| x.stream_id == stream_id }.should be_nil
+     end
+   end
 
     context 'when reading all commits from a particular point in time' do
       let(:now) { Time.now.utc + (60 * 60 * 24 * 7 * 52) }
