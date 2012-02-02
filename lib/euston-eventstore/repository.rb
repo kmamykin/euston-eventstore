@@ -9,9 +9,9 @@ module Euston
       end
 
       def save aggregate
-        stream = event_store.open_stream :stream_id => aggregate.aggregate_id
-        aggregate.uncommitted_events.each { |e| stream << EventStore::EventMessage.new(e.to_hash.stringify__keys) }
-        aggregate.uncommitted_commands.each { |c| stream << EventStore::CommandMessage.new(c.to_hash.stringify__keys) }
+        stream = aggregate.stream
+        aggregate.uncommitted_events.each { |e| stream << EventStore::Persistence::Mongodb::MongoEventMessage.new(e.to_hash.stringify__keys) }
+        aggregate.uncommitted_commands.each { |c| stream << EventStore::Persistence::Mongodb::MongoCommandMessage.new(c.to_hash.stringify__keys) }
         stream.uncommitted_headers[:aggregate_type] = aggregate.class.to_s
         stream.commit_changes Euston.uuid.generate
       end
