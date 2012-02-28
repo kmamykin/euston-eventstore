@@ -28,6 +28,7 @@ coverage
 rdoc
 pkg
 Gemfile.lock
+b/
 
 ## PROJECT::SPECIFIC
 mongo.log
