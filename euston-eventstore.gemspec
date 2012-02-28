@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'euston-eventstore'
-  s.version     = '1.2.6'
-  s.date        = '2012-02-03'
+  s.version     = '1.2.7'
+  s.date        = '2012-02-28'
   s.platform    = RUBY_PLATFORM.to_s == 'java' ? 'java' : Gem::Platform::RUBY
   s.authors     = ['Lee Henson', 'Guy Boertje']
   s.email       = ['lee.m.henson@gmail.com', 'guyboertje@gmail.com']
@@ -54,7 +54,7 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
 
   s.add_dependency 'activesupport',             '~> 3.1.0'
-  s.add_dependency 'euston',                    '~> 1.2.2'
+  s.add_dependency 'euston',                    '~> 1.2.9'
   s.add_dependency 'hash-keys',                 '~> 1.0.0'
 
   if RUBY_PLATFORM.to_s == 'java'
@@ -68,8 +68,8 @@ Gem::Specification.new do |s|
     s.add_dependency 'uuid',                    '~> 2.3.0'
   end
 
-  s.add_development_dependency 'awesome_print', '~> 0.4.0'
-  s.add_development_dependency 'fuubar',        '~> 0.0.0'
+  s.add_development_dependency 'awesome_print', '~> 1.0.2'
+  s.add_development_dependency 'fuubar',        '~> 1.0.0'
   s.add_development_dependency 'rake',          '~> 0.9.2'
   s.add_development_dependency 'rspec',         '~> 2.6.0'
 end
